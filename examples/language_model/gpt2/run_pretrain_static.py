@@ -459,20 +459,20 @@ def do_train(args):
     # paddle.static.set_program_state(reset_state_dict)
 
     # init with Megatron params
-    if args.batch_size == 4:
-        print("Loading bs4 init params.")
-        init_static_with_params(
-            model,
-            paddle.load(
-                os.path.join(os.environ['HOME'],
-                             './init_checkponits/gpt2-init-bs4.pdparams')))
-    elif args.batch_size == 32:
-        print("Loading bs32 init params.")
-        init_static_with_params(
-            model,
-            paddle.load(
-                os.path.join(os.environ['HOME'],
-                             './init_checkponits/gpt2-init-bs32.pdparams')))
+    # if args.batch_size == 4:
+    #     print("Loading bs4 init params.")
+    #     init_static_with_params(
+    #         model,
+    #         paddle.load(
+    #             os.path.join(os.environ['HOME'],
+    #                          './init_checkponits/gpt2-init-bs4.pdparams')))
+    # elif args.batch_size == 32:
+    #     print("Loading bs32 init params.")
+    #     init_static_with_params(
+    #         model,
+    #         paddle.load(
+    #             os.path.join(os.environ['HOME'],
+    #                          './init_checkponits/gpt2-init-bs32.pdparams')))
 
     test_program = main_program.clone(for_test=True)
     if worker_num == 1:
