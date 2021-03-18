@@ -238,7 +238,7 @@ def create_pretrained_dataset(args, input_path, worker_init, worker_index,
     train_data = GPT2Dataset(
         file_path=input_path,
         worker_index=worker_index,
-        num_samples=args.batch_size * args.max_steps * worker_num,
+        num_samples=int(50 * 10000),
         eod_id=eod_id,
         seed=args.seed + worker_index)
 
@@ -250,7 +250,7 @@ def create_pretrained_dataset(args, input_path, worker_init, worker_index,
         places=places,
         feed_list=data_holders,
         batch_sampler=train_batch_sampler,
-        num_workers=0,
+        num_workers=5,
         worker_init_fn=worker_init,
         collate_fn=Tuple(Stack(), Stack(), Stack(), Stack(), Stack()),
         return_list=False)
@@ -547,6 +547,149 @@ def do_train(args):
         epoch += 1
 
 
+def do_eval(args):
+    # Initialize the paddle and paddle fleet execute enviroment
+    paddle.enable_static()
+    assert args.select_devices in [
+        "cpu", "gpu", "xpu"
+    ], "Invalid device! Available device should be cpu, gpu, or xpu."
+    place = paddle.set_device(args.select_devices)
+    fleet.init(is_collective=True)
+
+    worker_num = fleet.worker_num()
+    worker_index = fleet.worker_index()
+
+    # Create the random seed for the worker
+    set_seed(args, worker_index)
+    worker_init = WorkerInitObj(args.seed + worker_index)
+
+    # Define the input data in the static mode
+    main_program = paddle.static.default_main_program()
+    startup_program = paddle.static.default_startup_program()
+    data_holders = create_data_holder(args)
+    [tokens, loss_mask, attention_mask, position_ids, labels] = data_holders
+
+    model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path)
+    eod_id = tokenizer.command_name_map["eod"].Id
+    config = model_class.pretrained_init_configuration[args.model_name_or_path]
+    if config["vocab_size"] % 8 != 0:
+        config["vocab_size"] += 8 - (config["vocab_size"] % 8)
+
+    # create the model for the gpt model
+    model = GPT2ForPretraining(GPT2Model(**config))
+    criterion = GPT2PretrainingCriterion()
+    preds = model(tokens, position_ids, attention_mask)
+    loss = criterion(preds, labels, loss_mask)
+
+    # Create the learning_rate sheduler and optimizer
+    if args.decay_steps is None:
+        args.decay_steps = args.max_steps
+    warmup_step = args.warmup_rate * args.decay_steps
+    lr_scheduler = lr.CosineAnnealingWithWarmupDecay(
+        max_lr=args.max_lr,
+        min_lr=args.min_lr,
+        warmup_step=warmup_step,
+        decay_step=args.decay_steps)
+
+    clip = None
+    if args.grad_clip > 0:
+        clip = paddle.nn.ClipGradByNorm(clip_norm=args.grad_clip)
+
+    # Define the Executor for running the static model
+    exe = paddle.static.Executor(place)
+    exe.run(startup_program)
+
+    # trans_param_from_static_to_dygrah(model)
+
+    # Use the state dict to update the parameter
+    # state_dict = model.state_dict()
+    # reset_state_dict = reset_program_state_dict(model, state_dict)
+    # paddle.static.set_program_state(reset_state_dict)
+
+    # if worker_num == 1:
+    #     # Construct the compiled program
+    #     main_program = build_compiled_program(args, main_program, loss)
+
+    #for epoch in range(args.num_train_epochs):
+    for idx in range(1, 10000):
+
+        def load_static_params(epoch):
+            global_step = epoch * args.save_steps
+            if global_step > args.max_steps:
+                logger.info("Evaluate all data over!")
+                exit(0)
+            output_dir = os.path.join(args.output_dir, "model_%d" % global_step)
+            if not os.path.exists(output_dir):
+                logger.info("Evaluate over, can't find more checkpoints for %s"
+                            % output_dir)
+                exit(0)
+
+            static_params = paddle.static.load_program_state(output_dir)
+            prog = paddle.static.default_main_program()
+            paddle.static.set_program_state(prog, static_params)
+
+            test_program = main_program.clone(for_test=True)
+
+            return test_program, global_step
+
+        epoch = 1
+        eval_step = 0
+        all_loss = []
+        tic_train = time.time()
+
+        files = [
+            os.path.join(args.input_dir, f) for f in os.listdir(args.input_dir)
+            if (os.path.isfile(os.path.join(args.input_dir, f)) and "npz_"
+                not in str(f))
+        ]
+        files.sort()
+        num_files = len(files)
+        random.Random(args.seed).shuffle(files)
+        for f_id in range(math.ceil(len(files) / worker_num)):
+            data_file = files[(f_id * worker_num + worker_index) % num_files]
+
+            test_program, global_step = load_static_params(epoch)
+            train_data_loader = create_pretrained_dataset(
+                args,
+                data_file,
+                worker_init,
+                worker_index,
+                worker_num,
+                eod_id=eod_id,
+                places=paddle.static.cuda_places(),
+                data_holders=data_holders)
+            for step, batch in enumerate(train_data_loader):
+                eval_step += 1
+                loss_return = exe.run(test_program,
+                                      feed=batch,
+                                      fetch_list=[loss.name])
+                # In the new 2.0 api, must call this function to change the learning_rate
+                if eval_step % args.logging_steps == 0:
+                    if worker_index == 0:
+                        logger.info(
+                            "eval step %d, epoch: %d, batch: %d, loss: %f, speed: %.2f step/s"
+                            % (
+                                eval_step,
+                                epoch,
+                                step,
+                                loss_return[0],
+                                args.logging_steps /
+                                (time.time() - tic_train), ))
+                    tic_train = time.time()
+
+                if eval_step % 400 == 0:
+                    all_loss.append(loss_return[0])
+                    logger.info("global_step %s, validation loss %s." %
+                                (global_step, sum(all_loss) / len(all_loss)))
+                    epoch += 1
+                    all_loss = []
+                    tic_train = time.time()
+                    test_program, global_step = load_static_params(epoch)
+
+            del train_data_loader
+
+
 if __name__ == "__main__":
     args = parse_args()
-    do_train(args)
+    do_eval(args)
