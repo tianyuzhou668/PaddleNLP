@@ -615,17 +615,25 @@ def do_eval(args):
     for idx in range(1, 10000):
 
         def load_static_params(epoch):
+            from converter.load_model_megatron_to_paddle import trans_megatron_to_paddle
+            from paddlenlp.utils.tools import dygraph_params_to_static
             global_step = epoch * args.save_steps
             if global_step > args.max_steps:
                 logger.info("Evaluate all data over!")
                 exit(0)
-            output_dir = os.path.join(args.output_dir, "model_%d" % global_step)
+            output_dir = os.path.join(
+                "/ssd1/zhonghui03/Workspace/Megatron-LM/checkpoints_bs4",
+                "iter_%.7d" % global_step, "mp_rank_00/model_optim_rng.pt")
+            # output_dir = "/ssd1/zhonghui03/models/PaddleNLP/examples/language_model/gpt2/release/mp_rank_00/model_optim_rng.pt"
             if not os.path.exists(output_dir):
                 logger.info("Evaluate over, can't find more checkpoints for %s"
                             % output_dir)
                 exit(0)
+            dygraph_params = trans_megatron_to_paddle(output_dir)
+            # dygraph_params = paddle.load("/ssd1/zhonghui03/.paddlenlp/models/gpt2-medium-en/gpt2-medium-en.pdparams")
 
-            static_params = paddle.static.load_program_state(output_dir)
+            static_params = dygraph_params_to_static(model, dygraph_params)
+            paddle.set_device("gpu")
             prog = paddle.static.default_main_program()
             paddle.static.set_program_state(prog, static_params)
 
