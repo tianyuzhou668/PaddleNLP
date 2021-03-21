@@ -622,7 +622,7 @@ def do_eval(args):
                 logger.info("Evaluate all data over!")
                 exit(0)
             output_dir = os.path.join(
-                "/ssd1/zhonghui03/Workspace/Megatron-LM/checkpoints_bs4",
+                "/ssd1/zhonghui03/Workspace/Megatron-LM/checkpoints_bs32",
                 "iter_%.7d" % global_step, "mp_rank_00/model_optim_rng.pt")
             # output_dir = "/ssd1/zhonghui03/models/PaddleNLP/examples/language_model/gpt2/release/mp_rank_00/model_optim_rng.pt"
             if not os.path.exists(output_dir):
