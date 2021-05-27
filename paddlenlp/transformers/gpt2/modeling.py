@@ -565,7 +565,7 @@ class GPT2Model(GPT2PretrainedModel):
             dropout=hidden_dropout_prob,
             activation=hidden_act,
             attn_dropout=attention_probs_dropout_prob,
-            act_dropout=0,
+            act_dropout=hidden_dropout_prob,
             weight_attr=paddle.ParamAttr(initializer=nn.initializer.Normal(
                 mean=0.0, std=self.initializer_range)),
             bias_attr=None)
