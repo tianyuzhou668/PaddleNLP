@@ -34,8 +34,8 @@ def construct_samples_and_shuffle_data(name, data_prefix, documents, sizes,
     sum(sizes) = tokens_per_epoch
     data_nums = num_samples *  batch_size
     num_epochs = (data_nums + 1) // sum(sizes)
-    len(doc_idx) = num_epochs * sum(sizes) 
-    
+    len(doc_idx) = num_epochs * sum(sizes)
+
     """
     # Number of tokens in each epoch and number of required epochs.
     tokens_per_epoch = _num_tokens(documents, sizes)
@@ -70,7 +70,7 @@ def construct_samples_and_shuffle_data(name, data_prefix, documents, sizes,
                     'last epoch number of samples exceeded max value.'
                 separate_last_epoch = (
                     last_epoch_num_samples < int(0.80 * num_samples_per_epoch))
-            # len(doc_idx) = num_epochs * len(doc) 
+            # len(doc_idx) = num_epochs * len(doc)
             doc_idx = _build_doc_idx(documents, num_epochs, np_rng,
                                      separate_last_epoch)
             np.save(doc_idx_filename, doc_idx, allow_pickle=True)
@@ -86,7 +86,7 @@ def construct_samples_and_shuffle_data(name, data_prefix, documents, sizes,
             else:
                 num_samples_ = sample_idx.shape[0] - 1
 
-            # shuffle all seq len data. 
+            # shuffle all seq len data.
             shuffle_idx = _build_shuffle_idx(num_samples_,
                                              sample_idx.shape[0] - 1, np_rng)
             np.save(shuffle_idx_filename, shuffle_idx, allow_pickle=True)
@@ -235,7 +235,7 @@ def create_pretrained_dataset(args,
             places=places,
             feed_list=data_holders,
             batch_sampler=batch_sampler,
-            num_workers=0,
+            num_workers=8,
             worker_init_fn=worker_init,
             collate_fn=Tuple(Stack(), Stack(), Stack(), Stack(), Stack()),
             return_list=False)
@@ -298,7 +298,7 @@ class GPT2Dataset(paddle.io.Dataset):
         position_ids = np.arange(0, seq_length, dtype="int64")
 
         # -INF mask value as default
-        # attention_mask = (attention_mask - 1.0) * 1e9
+        attention_mask = (attention_mask - 1.0) * 1e9
         # Bool mask of attention
         attention_mask = attention_mask.astype("float32")
         return [tokens, loss_mask, attention_mask, position_ids, labels]

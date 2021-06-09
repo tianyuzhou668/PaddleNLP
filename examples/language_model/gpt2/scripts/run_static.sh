@@ -4,7 +4,7 @@ unset CUDA_VISIBLE_DEVICES
 task_name="gpt-fix-4_10"
 rm -rf output/$task_name/log
 
-PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch --gpus 1 \
+PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch --gpus 0 \
     --log_dir "output/$task_name/log" run_pretrain_static.py \
     --model_type gpt2\
     --model_name_or_path gpt2-small-en \
@@ -17,8 +17,9 @@ PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch --gpus 1 \
     --grad_clip 1.0\
     --save_steps 10000\
     --eval_steps 500\
-    --use_recompute true\
-    --use_amp true\
+    --logging_steps 20 \
+    --use_recompute False\
+    --use_amp False\
     --warmup_rate 0.01\
-    --batch_size 32\
+    --batch_size 16\
     --device gpu

@@ -221,10 +221,10 @@ class MultiHeadAttention(nn.Layer):
         product = layers.matmul(
             x=q, y=k, transpose_y=True, alpha=self.head_dim**-0.5)
         if attn_mask is not None:
-            # product = product + attn_mask
-            product = product * attn_mask
-            mask_score = (attn_mask - 1.0) * 10000.0
-            product = product + mask_score
+            product = product + attn_mask
+            # product = product * attn_mask
+            # mask_score = (attn_mask - 1.0) * 10000.0
+            # product = product + mask_score
         weights = F.softmax(product)
         if self.dropout:
             weights = F.dropout(

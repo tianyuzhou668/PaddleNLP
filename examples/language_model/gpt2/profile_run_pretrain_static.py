@@ -19,6 +19,7 @@ import math
 import os
 import random
 import time
+import sys
 
 os.environ['FLAGS_enable_parallel_graph'] = "0"
 os.environ['FLAGS_fraction_of_gpu_memory_to_use'] = "0.1"
@@ -491,12 +492,24 @@ def do_train(args):
 
             for step, batch in enumerate(train_data_loader()):
                 global_step += 1
+                if global_step == 100:
+                    paddle.fluid.core.nvprof_start()
+                    paddle.fluid.core.nvprof_enable_record_event()
+                    paddle.fluid.core.nvprof_nvtx_push(str(global_step))
+
                 loss_return, lr_return = exe.run(
                     main_program,
                     feed=batch,
                     fetch_list=[loss.name, 'learning_rate_0'])
                 # In the new 2.0 api, must call this function to change the learning_rate
                 lr_scheduler.step()
+                if global_step == 110:
+                    paddle.fluid.core.nvprof_nvtx_pop()
+                    paddle.fluid.core.nvprof_stop()
+                    sys.exit()
+                if global_step > 100 and global_step < 110:
+                    paddle.fluid.core.nvprof_nvtx_pop()
+                    paddle.fluid.core.nvprof_nvtx_push(str(global_step))
 
                 if global_step % args.logging_steps == 0:
                     if worker_index == 0:
