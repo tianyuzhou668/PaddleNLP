@@ -720,10 +720,10 @@ class GPTModel(GPTPretrainedModel):
                          paddle.shape(input_ids)[-1])) * -1e9,
             diagonal=1)
 
-        if attention_mask is not None:
-            attention_mask = attention_mask + causal_mask
-        else:
-            attention_mask = causal_mask
+        # if attention_mask is not None:
+        #     attention_mask = attention_mask + causal_mask
+        # else:
+        #     attention_mask = causal_mask
 
         # The tensor returned by triu not in static graph.
         attention_mask.stop_gradient = True

@@ -52,6 +52,19 @@ MODEL_CLASSES = {
 }
 
 
+def create_data_holder():
+    """creat data holdr"""
+    tokens = paddle.static.data(name="tokens", shape=[-1, -1], dtype="int64")
+    loss_mask = paddle.static.data(
+        name="loss_mask", shape=[-1, -1], dtype="float32")
+    attention_mask = paddle.static.data(
+        name="attention_mask", shape=[-1, 1, -1, -1], dtype="float32")
+    position_ids = paddle.static.data(
+        name="position_ids", shape=[-1, -1], dtype="int64")
+    labels = paddle.static.data(name="labels", shape=[-1, -1], dtype="int64")
+    return [tokens, loss_mask, attention_mask, position_ids, labels]
+
+
 def create_strategy(args):
     build_strategy = paddle.static.BuildStrategy()
     exec_strategy = paddle.static.ExecutionStrategy()
@@ -91,47 +104,7 @@ def create_data_holder(args):
     return [tokens, loss_mask, attention_mask, position_ids, labels]
 
 
-def dist_optimizer(args, topo, worker_num=1):
-    build_strategy, exec_strategy = create_strategy(args)
-
-    exec_strategy.num_threads = 2
-    dist_strategy = fleet.DistributedStrategy()
-    dist_strategy.execution_strategy = exec_strategy
-    dist_strategy.build_strategy = build_strategy
-    dist_strategy.nccl_comm_num = 1
-
-    dist_strategy.fuse_grad_size_in_MB = 16
-    if args.use_amp:
-        dist_strategy.amp = True
-        dist_strategy.amp_configs = {
-            "custom_white_list": ['softmax', 'gelu'],
-            "init_loss_scaling": 32768,
-            "use_dynamic_loss_scaling": True,
-        }
-        # dist_strategy.amp_configs = {
-        #     "custom_white_list": ['softmax', 'layer_norm', 'gelu'],
-        #     "init_loss_scaling": args.scale_loss,
-        #     "incr_every_n_steps": 10,
-        #     "decr_every_n_nan_or_inf": 1,
-        #     "incr_ratio": 2.0,
-        #     "decr_ratio": 10,
-        #     "use_dynamic_loss_scaling": True,
-        # }
-    if args.use_sharding:
-        dist_strategy.sharding = True
-        if worker_num > 8:
-            dist_strategy.sharding_configs = {
-                "fuse_broadcast_MB": 32,
-                "hybird_dp": True,
-                "sharding_group_size": 8,
-            }
-        else:
-            dist_strategy.sharding_configs = {"fuse_broadcast_MB": 32, }
-
-    return dist_strategy
-
-
-def dist_optimizer_v2(args, topo):
+def dist_optimizer(args, topo):
     default_global_batch_size = topo.data_info.size * args.micro_batch_size
     if args.global_batch_size is None:
         args.global_batch_size = default_global_batch_size
@@ -142,20 +115,14 @@ def dist_optimizer_v2(args, topo):
         args.global_batch_size, micro_batch_size)
     acc_steps = bsz_per_dp // micro_batch_size
 
-    build_strategy = paddle.static.BuildStrategy()
-    build_strategy.enable_addto = args.enable_addto
-    build_strategy.enable_sequential_execution = args.use_recompute
-
     exec_strategy = paddle.fluid.ExecutionStrategy()
     exec_strategy.num_threads = 2
-    exec_strategy.num_iteration_per_drop_scope = 100
+    exec_strategy.num_iteration_per_drop_scope = 1
 
     dist_strategy = fleet.DistributedStrategy()
-    dist_strategy.build_strategy = build_strategy
     dist_strategy.execution_strategy = exec_strategy
-    dist_strategy.nccl_comm_num = 1
+    dist_strategy.nccl_comm_num = 3
 
-    dist_strategy.fuse_grad_size_in_MB = 16
     dist_strategy.recompute = args.use_recompute
     dist_strategy.pipeline = args.pp_degree > 1
 
@@ -340,7 +307,7 @@ def do_train(args):
                     weight_decay=args.weight_decay,
                     apply_decay_param_fun=lambda x: x in decay_param)
             else:
-                # optimizer = paddle.fluid.optimizer.AdamOptimizer(
+                #optimizer = paddle.fluid.optimizer.AdamOptimizer(
                 optimizer = paddle.optimizer.Adam(
                     learning_rate=lr_scheduler,
                     beta1=args.adam_beta1,
@@ -351,8 +318,6 @@ def do_train(args):
                     "Compile custom adamw failed, use fluid.Adam and on WEIGHT DECAY!!!!"
                 )
 
-            optimizer.apply_optimize = optimizer._apply_optimize
-
             if args.use_recompute:
                 dist_strategy.recompute = True
                 dist_strategy.recompute_configs = {
@@ -360,8 +325,8 @@ def do_train(args):
                 }
 
             # Use the fleet api to compile the distributed optimizer
-            optimizer = fleet.distributed_optimizer(
-                optimizer, strategy=dist_strategy)
+            # optimizer = fleet.distributed_optimizer(
+            #     optimizer, strategy=dist_strategy)
 
             optimizer.minimize(loss)
             logger.info(f'final strategy: {fleet._final_strategy()}')
@@ -416,12 +381,23 @@ def do_train(args):
 
         for step, batch in enumerate(train_data_loader()):
             global_step += 1
-            ret = exe.run(main_program,
-                          feed=batch,
-                          fetch_list=fetchs,
-                          use_program_cache=True)
+            if global_step == 100:
+                paddle.fluid.core.nvprof_start()
+                paddle.fluid.core.nvprof_enable_record_event()
+                paddle.fluid.core.nvprof_nvtx_push(str(global_step))
+
+            ret = exe.run(main_program, feed=batch, fetch_list=fetchs)
             # In the new 2.0 api, must call this function to change the learning_rate
             lr_scheduler.step()
+
+            if global_step == 110:
+                paddle.fluid.core.nvprof_nvtx_pop()
+                paddle.fluid.core.nvprof_stop()
+                import sys
+                sys.exit()
+            if global_step > 100 and global_step < 110:
+                paddle.fluid.core.nvprof_nvtx_pop()
+                paddle.fluid.core.nvprof_nvtx_push(str(global_step))
 
             if global_step % args.logging_freq == 0:
                 if topo.is_last:
