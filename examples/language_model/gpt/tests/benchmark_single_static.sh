@@ -14,7 +14,7 @@ task_name="gpt-benchmark-single-static"
 rm -rf output/$task_name/log
 
 PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch \
-    --gpus "0" \
+    --gpus "3" \
     --log_dir "output/$task_name/log" run_pretrain_static.py \
     --model_type "gpt" \
     --model_name_or_path "./ckpt/gpt2-small-en-init-checkpoint"\
@@ -29,7 +29,7 @@ PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch \
     --pp_degree 1 \
     --use_sharding false \
     --use_amp true \
-    --use_recompute true \
+    --use_recompute false \
     --max_lr 0.00015 \
     --min_lr 0.00001 \
     --max_steps 70000 \
@@ -38,7 +38,7 @@ PYTHONPATH=../../../ python -u  -m paddle.distributed.fleet.launch \
     --weight_decay 0.01\
     --warmup_rate 0.01 \
     --grad_clip 1.0 \
-    --logging_freq 1\
+    --logging_freq 20\
     --eval_freq 500 \
     --device "gpu"
 

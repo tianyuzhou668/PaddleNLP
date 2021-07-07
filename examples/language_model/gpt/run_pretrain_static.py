@@ -32,7 +32,8 @@ from paddlenlp.transformers import GPTTokenizer, GPTChineseTokenizer
 from paddlenlp.ops import guard, Topology, get_rng_state_tracker
 from paddlenlp.utils.log import logger
 import paddlenlp.ops as ops
-from visualdl import LogWriter
+#from visualdl import LogWriter
+from tensorboardX import SummaryWriter as LogWriter
 
 from dataset import create_pretrained_dataset
 from args import parse_args
@@ -381,6 +382,13 @@ def do_train(args):
                     topo,
                     main_program)
                 flag_loaded = True
+
+        mp_static_path = os.path.join(args.model_name_or_path,
+                                      "static_vars_mp_%d" % topo.mp_info.rank)
+        if not flag_loaded and os.path.exists(mp_static_path):
+            logger.info("Loading parameters from %s" % mp_static_path)
+            paddle.static.load(main_program, mp_static_path, exe)
+            flag_loaded = True
 
         if not flag_loaded:
             logger.error("No checkpoint load.")
