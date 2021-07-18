@@ -341,16 +341,18 @@ class GPTDataset(paddle.io.Dataset):
         else:
             document_ids = documents
 
-        self.doc_idx, self.sample_idx, self.shuffle_idx = \
-            construct_samples_and_shuffle_data(self.name, self.file_path, document_ids,\
-                self.sample_lens, num_samples, max_seq_len, seed, topo.world.rank)
+        # self.doc_idx, self.sample_idx, self.shuffle_idx = \
+        #     construct_samples_and_shuffle_data(self.name, self.file_path, document_ids,\
+        #         self.sample_lens, num_samples, max_seq_len, seed, topo.world.rank)
 
         # The doc cumsum start pos
-        self.start_pos = [0] + np.cumsum(self.sample_lens).tolist()
+        # self.start_pos = [0] + np.cumsum(self.sample_lens).tolist()
 
-        self._length = self.sample_idx.shape[0] - 1
+        # self._length = self.sample_idx.shape[0] - 1
+        self._length = 10**8
 
-    def _construct_sample(self, tokens):
+    def _construct_sample(self):
+        tokens = np.random.randint(1, 50000, size=self.max_seq_len)
         tokens = np.array(tokens).astype("int64")
         labels = tokens[1:]
         tokens = tokens[:-1]
@@ -402,15 +404,15 @@ class GPTDataset(paddle.io.Dataset):
         return tokens
 
     def __getitem__(self, index):
-        idx = self.shuffle_idx[index]
-        # Start and end documents and offsets.
-        doc_index_f = self.sample_idx[idx][0]
-        doc_index_l = self.sample_idx[idx + 1][0]
-        offset_f = self.sample_idx[idx][1]
-        offset_l = self.sample_idx[idx + 1][1]
-        tokens = self._get_single_sample_from_idx(doc_index_f, doc_index_l,
-                                                  offset_f, offset_l)
-        return self._construct_sample(tokens)
+        # idx = self.shuffle_idx[index]
+        # # Start and end documents and offsets.
+        # doc_index_f = self.sample_idx[idx][0]
+        # doc_index_l = self.sample_idx[idx + 1][0]
+        # offset_f = self.sample_idx[idx][1]
+        # offset_l = self.sample_idx[idx + 1][1]
+        # tokens = self._get_single_sample_from_idx(doc_index_f, doc_index_l,
+        #                                           offset_f, offset_l)
+        return self._construct_sample()
 
     def __len__(self):
         return self._length
