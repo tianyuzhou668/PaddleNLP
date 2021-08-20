@@ -5,6 +5,52 @@
 
 本项目是BERT在 Paddle 2.0上的开源实现，包含了预训练和[GLUE评测任务](https://gluebenchmark.com/tasks)上的微调代码。
 
+## Benchmark测试文档
+数据准备
+```
+mkdir bert_data && cd bert_data
+wget https://bert-data.bj.bcebos.com/benchmark_sample%2Fhdf5_lower_case_1_seq_len_128_max_pred_20_masked_lm_prob_0.15_random_seed_12345_dupe_factor_5.tar.gz -O data.tar.gz
+tar -zxvf data.tar.gz
+cd ..
+```
+bert_large Benchmark测试
+fp32性能测试, 单卡 bs=32, 48, 64
+```
+bash run_benchmark.sh 32 1 False
+bash run_benchmark.sh 48 1 False
+bash run_benchmark.sh 64 1 False
+```
+
+fp32性能测试, 八卡 bs=32, 48, 64
+```
+bash run_benchmark.sh 32 8 False
+bash run_benchmark.sh 48 8 False
+bash run_benchmark.sh 64 8 False
+```
+
+amp性能测试，单卡 bs=32, 64, 128
+```
+bash run_benchmark.sh 32 1 True 
+bash run_benchmark.sh 64 1 True
+bash run_benchmark.sh 128 1 True
+```
+
+amp性能测试，八卡 bs=32, 64, 128
+```
+bash run_benchmark.sh 32 8 True 
+bash run_benchmark.sh 64 8 True
+bash run_benchmark.sh 128 8 True
+```
+
+V100 32G 测试效果如下：
+
+|卡数|FP32(BS=32)|FP32(BS=48)|FP32(BS=64)|AMP(BS=32)|AMP(BS=64)|AMP(BS=128)|
+|-|-|-|-|-|-|-|
+|1 | 45.98 | 46.92 |  47.25 | 171.56 | 197.82 |  215.73|
+|8 | 352.16 | 363.68 | 366.80 | 1215.6 |  1420.16 | 1570.48|
+
+其他bert-base的测试性能可以参考，https://github.com/wanghuancoder/PerformanceReport/blob/main/Bert/README.md
+
 ## 快速开始
 
 ### 数据准备
