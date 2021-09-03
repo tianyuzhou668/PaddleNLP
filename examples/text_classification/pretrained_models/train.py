@@ -35,8 +35,8 @@ parser.add_argument("--max_seq_length", default=128, type=int, help="The maximum
 parser.add_argument("--batch_size", default=32, type=int, help="Batch size per GPU/CPU for training.")
 parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
 parser.add_argument("--weight_decay", default=0.0, type=float, help="Weight decay if we apply some.")
-parser.add_argument("--epochs", default=3, type=int, help="Total number of training epochs to perform.")
-parser.add_argument("--warmup_proportion", default=0.0, type=float, help="Linear warmup proption over the training process.")
+parser.add_argument("--epochs", default=6, type=int, help="Total number of training epochs to perform.")
+parser.add_argument("--warmup_proportion", default=0.1, type=float, help="Linear warmup proption over the training process.")
 parser.add_argument("--init_from_ckpt", type=str, default=None, help="The path of checkpoint to be loaded.")
 parser.add_argument("--seed", type=int, default=1000, help="random seed for initialization")
 parser.add_argument('--device', choices=['cpu', 'gpu', 'xpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
@@ -138,6 +138,20 @@ def create_dataloader(dataset,
         return_list=True)
 
 
+def init_static_with_params(model, dygraph_params, topo, prog=None):
+    from paddlenlp.utils.tools import dygraph_params_to_static
+    static_params = dygraph_params_to_static(model, dygraph_params, topo)
+    if prog is None:
+        prog = paddle.static.default_main_program()
+    paddle.static.set_program_state(prog, static_params)
+
+
+def init_dygraph_with_static(model, static_params_path):
+    from paddlenlp.utils.tools import static_params_to_dygraph
+    static_tensor_dict = paddle.static.load_program_state(static_params_path)
+    return static_params_to_dygraph(model, static_tensor_dict)
+
+
 def do_train():
     paddle.set_device(args.device)
     rank = paddle.distributed.get_rank()
@@ -153,15 +167,23 @@ def do_train():
     # model = ppnlp.transformers.RobertaForSequenceClassification.from_pretrained('roberta-wwm-ext', num_class=2)
     # model = ppnlp.transformers.ElectraForSequenceClassification.from_pretrained('chinese-electra-small', num_classes=2)
     model = ppnlp.transformers.ErnieForSequenceClassification.from_pretrained(
-        'ernie-tiny', num_classes=len(train_ds.label_list))
+        'ernie-1.0', num_classes=len(train_ds.label_list))
 
+    #model_dict = init_dygraph_with_static(model, "/ssd1/zhonghui03/Workspace/PaddleNLP/examples/language_model/ernie-1.0/output/ernie-1.0-dp-sharding/model_100000/static_vars")
+    model_dict = init_dygraph_with_static(
+        model, "/ssd1/zhonghui03/ernie_0813_gb512_s700k.pdparams")
+    print(model_dict["ernie.pooler.dense.weight"])
+    model.set_state_dict(model_dict)
+    print(model.ernie.pooler.dense.weight)
     # If you wanna use bert/roberta/electra pretrained model,
     # tokenizer = ppnlp.transformers.BertTokenizer.from_pretrained('bert-base-chinese')
     # tokenizer = ppnlp.transformers.RobertaTokenizer.from_pretrained('roberta-wwm-ext')
     # tokenizer = ppnlp.transformers.ElectraTokenizer.from_pretrained('chinese-electra-small', num_classes=2)
     # ErnieTinyTokenizer is special for ernie-tiny pretained model.
-    tokenizer = ppnlp.transformers.ErnieTinyTokenizer.from_pretrained(
-        'ernie-tiny')
+    #tokenizer = ppnlp.transformers.ErnieTinyTokenizer.from_pretrained(
+    #    'ernie-tiny')
+
+    tokenizer = ppnlp.transformers.ErnieTokenizer.from_pretrained("ernie-1.0")
 
     trans_func = partial(
         convert_example,
