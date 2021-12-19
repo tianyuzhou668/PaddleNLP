@@ -24,7 +24,9 @@ import shutil
 import collections
 
 import numpy as np
+import utils
 import paddle
+
 import paddle.distributed.fleet as fleet
 from paddle.distributed.fleet.meta_optimizers.sharding.utils import save_persistables
 from paddle.io import DataLoader, Dataset
