@@ -37,6 +37,19 @@ DSET_TYPE_ERNIE = 'ernie'
 DSET_TYPES = [DSET_TYPE_BERT, DSET_TYPE_T5, DSET_TYPE_ERNIE]
 
 
+def compile_helper():
+    """Compile helper function ar runtime. Make sure this
+    is invoked on a single process."""
+    import os
+    import subprocess
+    path = os.path.abspath(os.path.dirname(__file__))
+    ret = subprocess.run(['make', '-C', path])
+    if ret.returncode != 0:
+        print("Making C++ dataset helpers module failed, exiting.")
+        import sys
+        sys.exit(1)
+
+
 class BlendableDataset(paddle.io.Dataset):
     def __init__(self, datasets, weights):
 
@@ -62,6 +75,16 @@ class BlendableDataset(paddle.io.Dataset):
 
         local_rank = 0 if fleet.local_rank() is None else int(fleet.local_rank(
         ))
+
+        while True:
+            try:
+                import data_tools.helpers as helpers
+                break
+            except Exception as e:
+                if local_rank == 0:
+                    compile_helper()
+                print_rank_0('> wait for hepers to be compiled!')
+                time.sleep(1)
 
         import data_tools.helpers as helpers
         helpers.build_blending_indices(self.dataset_index,
@@ -191,19 +214,6 @@ class MMapIndexedDataset(paddle.io.Dataset):
 
 def make_indexed_dataset(data_prefix, data_impl=None, skip_warmup=False):
     return MMapIndexedDataset(data_prefix)
-
-
-def compile_helper():
-    """Compile helper function ar runtime. Make sure this
-    is invoked on a single process."""
-    import os
-    import subprocess
-    path = os.path.abspath(os.path.dirname(__file__))
-    ret = subprocess.run(['make', '-C', path])
-    if ret.returncode != 0:
-        print("Making C++ dataset helpers module failed, exiting.")
-        import sys
-        sys.exit(1)
 
 
 def get_a_and_b_segments(sample, np_rng):
