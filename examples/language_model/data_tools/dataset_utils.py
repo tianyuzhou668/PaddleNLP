@@ -51,6 +51,12 @@ def compile_helper():
 
 
 class BlendableDataset(paddle.io.Dataset):
+    """
+    The BlendableDataset is a wrapper which used to mix different dataset.
+    
+    The input is a list of dataset and corresponding weights for each dataset.
+    """
+
     def __init__(self, datasets, weights):
 
         self.datasets = datasets
