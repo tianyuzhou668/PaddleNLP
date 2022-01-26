@@ -95,7 +95,7 @@ class ErniePretrainedModel(PretrainedModel):
     An abstract class for pretrained ERNIE models. It provides ERNIE related
     `model_config_file`, `pretrained_init_configuration`, `resource_files_names`,
     `pretrained_resource_files_map`, `base_model_prefix` for downloading and
-    loading pretrained models. 
+    loading pretrained models.
     Refer to :class:`~paddlenlp.transformers.model_utils.PretrainedModel` for more details.
 
     """
@@ -188,6 +188,8 @@ class ErniePretrainedModel(PretrainedModel):
         "model_state": {
             "ernie-1.0":
             "https://bj.bcebos.com/paddlenlp/models/transformers/ernie/ernie_v1_chn_base.pdparams",
+            "ernie-1.0-large":
+            "https://bj.bcebos.com/paddlenlp/models/transformers/ernie/model_state.pdparams",
             "ernie-tiny":
             "https://bj.bcebos.com/paddlenlp/models/transformers/ernie_tiny/ernie_tiny.pdparams",
             "ernie-2.0-en":
@@ -202,18 +204,22 @@ class ErniePretrainedModel(PretrainedModel):
 
     def init_weights(self, layer):
         """ Initialization hook """
-        if isinstance(layer, (nn.Linear, nn.Embedding)):
-            # only support dygraph, use truncated_normal and make it inplace
-            # and configurable later
-            if isinstance(layer.weight, paddle.Tensor):
-                layer.weight.set_value(
-                    paddle.tensor.normal(
-                        mean=0.0,
-                        std=self.initializer_range
-                        if hasattr(self, "initializer_range") else
-                        self.ernie.config["initializer_range"],
-                        shape=layer.weight.shape))
-        elif isinstance(layer, nn.LayerNorm):
+        # We set the weight attr in the modeling files.
+        # So we delete the init_weights hook.
+
+        # if isinstance(layer, (nn.Linear, nn.Embedding)):
+        #     # only support dygraph, use truncated_normal and make it inplace
+        #     # and configurable later
+        #     if isinstance(layer.weight, paddle.Tensor):
+        #         layer.weight.set_value(
+        #             paddle.tensor.normal(
+        #                 mean=0.0,
+        #                 std=self.initializer_range
+        #                 if hasattr(self, "initializer_range") else
+        #                 self.ernie.config["initializer_range"],
+        #                 shape=layer.weight.shape))
+
+        if isinstance(layer, nn.LayerNorm):
             layer._epsilon = 1e-12
 
 
@@ -264,7 +270,7 @@ class ErnieModel(ErniePretrainedModel):
         initializer_range (float, optional):
             The standard deviation of the normal initializer for initializing all weight matrices.
             Defaults to `0.02`.
-            
+
             .. note::
                 A normal_initializer initializes weight matrices as normal distributions.
                 See :meth:`ErniePretrainedModel._init_weights()` for how weights are initialized in `ErnieModel`.
@@ -401,13 +407,13 @@ class ErnieForSequenceClassification(ErniePretrainedModel):
     designed for sequence classification/regression tasks like GLUE tasks.
 
     Args:
-        ernie (ErnieModel): 
+        ernie (ErnieModel):
             An instance of `paddlenlp.transformers.ErnieModel`.
-        num_classes (int, optional): 
+        num_classes (int, optional):
             The number of classes. Default to `2`.
-        dropout (float, optional): 
-            The dropout probability for output of ERNIE. 
-            If None, use the same value as `hidden_dropout_prob` 
+        dropout (float, optional):
+            The dropout probability for output of ERNIE.
+            If None, use the same value as `hidden_dropout_prob`
             of `paddlenlp.transformers.ErnieModel` instance. Defaults to `None`.
     """
 
@@ -473,7 +479,7 @@ class ErnieForQuestionAnswering(ErniePretrainedModel):
     designed for question-answering tasks like SQuAD.
 
     Args:
-        ernie (`ErnieModel`): 
+        ernie (`ErnieModel`):
             An instance of `ErnieModel`.
     """
 
@@ -546,13 +552,13 @@ class ErnieForTokenClassification(ErniePretrainedModel):
     designed for token classification tasks like NER tasks.
 
     Args:
-        ernie (`ErnieModel`): 
+        ernie (`ErnieModel`):
             An instance of `ErnieModel`.
-        num_classes (int, optional): 
+        num_classes (int, optional):
             The number of classes. Defaults to `2`.
-        dropout (float, optional): 
-            The dropout probability for output of ERNIE. 
-            If None, use the same value as `hidden_dropout_prob` 
+        dropout (float, optional):
+            The dropout probability for output of ERNIE.
+            If None, use the same value as `hidden_dropout_prob`
             of `ErnieModel` instance `ernie`. Defaults to `None`.
     """
 
@@ -858,7 +864,7 @@ class ErnieForMaskedLM(ErniePretrainedModel):
 
                 tokenizer = ErnieTokenizer.from_pretrained('ernie-1.0')
                 model = ErnieForMaskedLM.from_pretrained('ernie-1.0')
-                
+
                 inputs = tokenizer("Welcome to use PaddlePaddle and PaddleNLP!")
                 inputs = {k:paddle.to_tensor([v]) for (k, v) in inputs.items()}
 
@@ -882,7 +888,7 @@ class ErnieForMultipleChoice(ErniePretrainedModel):
     """
     Ernie Model with a linear layer on top of the hidden-states output layer,
     designed for multiple choice tasks like RocStories/SWAG tasks.
-    
+
     Args:
         ernie (:class:`ErnieModel`):
             An instance of ErnieModel.
