@@ -17,26 +17,10 @@ bash run_one_search.sh $1 wsc 5 &
 
 # Because the CMNLI data set is significantly larger than other data sets,
 # It needs to be placed on different cards.
-lr=1e-4
-bs=16
-sh run_clue.sh CMNLI $lr $bs 3 128 0 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=32
-sh run_clue.sh CMNLI $lr $bs 3 128 1 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=64
-sh run_clue.sh CMNLI $lr $bs 3 128 2 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-
 lr=5e-5
-bs=16
-sh run_clue.sh CMNLI $lr $bs 3 128 3 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=32
-sh run_clue.sh CMNLI $lr $bs 3 128 4 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=64
+bs=128
 sh run_clue.sh CMNLI $lr $bs 3 128 5 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
 
 lr=3e-5
-bs=16
-sh run_clue.sh CMNLI $lr $bs 3 128 6 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=32
-sh run_clue.sh CMNLI $lr $bs 3 128 5 $1  > $1/cmnli/${lr}_${bs}_3_128.log &
-bs=64
+bs=128
 sh run_clue.sh CMNLI $lr $bs 3 128 7 $1  > $1/cmnli/${lr}_${bs}_3_128.log &

@@ -20,7 +20,7 @@ from paddle.utils import try_import
 from .. import BasicTokenizer, PretrainedTokenizer, WordpieceTokenizer, GPTTokenizer, AddedToken
 from ..gpt.tokenizer import bytes_to_unicode
 
-__all__ = ['RobertaTokenizer']
+__all__ = ['RobertaTokenizer', 'RobertaChineseTokenizer']
 
 
 class RobertaTokenizer(PretrainedTokenizer):

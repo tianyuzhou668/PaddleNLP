@@ -82,8 +82,8 @@ def evaluate(model, criterion, metric, data_loader, mode="valid"):
         metric.update(correct)
     accu = metric.accumulate()
     print("%s: eval loss: %.5f, accuracy: %.5f" % (mode, np.mean(losses), accu))
-    model.train()
     metric.reset()
+    model.train()
 
 
 def create_dataloader(dataset,
@@ -121,8 +121,9 @@ def do_train():
         args.dataset, splits=["train", "dev", "test"])
 
     model = ppnlp.transformers.ErnieForSequenceClassification.from_pretrained(
-        'ernie-1.0', num_classes=len(train_ds.label_list))
-    tokenizer = ppnlp.transformers.ErnieTokenizer.from_pretrained('ernie-1.0')
+        'ernie-1.0-large', num_classes=len(train_ds.label_list))
+    tokenizer = ppnlp.transformers.ErnieTokenizer.from_pretrained(
+        'ernie-1.0-large')
 
     trans_func = partial(
         convert_example,
@@ -212,6 +213,7 @@ def do_train():
                     "global step %d, epoch: %d, batch: %d, loss: %.5f, accuracy: %.5f, speed: %.2f step/s"
                     % (global_step, epoch, step, loss, acc,
                        args.logging_steps / time_diff))
+                metric.reset()
                 tic_train = time.time()
 
             if global_step % args.valid_steps == 0 and rank == 0:

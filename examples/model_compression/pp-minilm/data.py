@@ -17,10 +17,14 @@ from paddle.metric import Metric, Accuracy
 
 from paddlenlp.transformers import PPMiniLMForSequenceClassification, PPMiniLMTokenizer
 from paddlenlp.transformers import BertForSequenceClassification, BertTokenizer
+from paddlenlp.transformers import ErnieForSequenceClassification, ErnieTokenizer
+from paddlenlp.transformers import RobertaForSequenceClassification, RobertaChineseTokenizer
 
 MODEL_CLASSES = {
     "ppminilm": (PPMiniLMForSequenceClassification, PPMiniLMTokenizer),
-    "bert": (BertForSequenceClassification, BertTokenizer)
+    "bert": (BertForSequenceClassification, BertTokenizer),
+    "ernie": (ErnieForSequenceClassification, ErnieTokenizer),
+    "roberta": (RobertaForSequenceClassification, RobertaChineseTokenizer),
 }
 
 METRIC_CLASSES = {
