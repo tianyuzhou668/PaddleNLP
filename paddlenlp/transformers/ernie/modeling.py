@@ -324,6 +324,45 @@ class ErniePretrainedModel(PretrainedModel):
             layer._epsilon = 1e-12
 
 
+class AppnpTransformerEncoder(paddle.nn.Layer):
+    def __init__(self, encoder_layer, num_layers, norm=None, k=0.0):
+        super(AppnpTransformerEncoder, self).__init__()
+        self.layers = paddle.nn.LayerList([(
+            encoder_layer
+            if i == 0 else type(encoder_layer)(**encoder_layer._config))
+                                           for i in range(num_layers)])
+        self.num_layers = num_layers
+        self.norm = norm
+        self.k = k
+
+    def forward(self, src, src_mask=None, cache=None):
+        src_mask = paddle.nn.layer.transformer._convert_attention_mask(
+            src_mask, src.dtype)
+
+        output = src
+        new_caches = []
+        for i, mod in enumerate(self.layers):
+            if cache is None:
+                output = mod(output, src_mask=src_mask)
+            else:
+                output, new_cache = mod(output,
+                                        src_mask=src_mask,
+                                        cache=cache[i])
+                new_caches.append(new_cache)
+            if i < len(self.layers) - 1:
+                k = 0.2
+                output = (1 - k) * output + k * src
+
+        if self.norm is not None:
+            output = self.norm(output)
+
+        return output if cache is None else (output, new_caches)
+
+    def gen_cache(self, src):
+        cache = [layer.gen_cache(src) for layer in self.layers]
+        return cache
+
+
 @register_base_model
 class ErnieModel(ErniePretrainedModel):
     r"""
@@ -418,7 +457,7 @@ class ErnieModel(ErniePretrainedModel):
             act_dropout=0,
             weight_attr=weight_attr,
             normalize_before=False)
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_hidden_layers)
+        self.encoder = AppnpTransformerEncoder(encoder_layer, num_hidden_layers)
         self.pooler = ErniePooler(hidden_size, weight_attr)
         self.apply(self.init_weights)
 
