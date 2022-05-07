@@ -25,7 +25,7 @@ import paddle
 import paddle.nn.functional as F
 from paddlenlp.data import Dict, Pad, Tuple
 from paddlenlp.datasets import load_dataset
-from paddlenlp.transformers import ElectraTokenizer
+from paddlenlp.transformers import AutoTokenizer
 
 from utils import convert_example_spo, create_dataloader, SPOChunkEvaluator, LinearDecayWithWarmup
 from model import ElectraForSPO
@@ -109,9 +109,11 @@ def do_train():
 
     train_ds, dev_ds = load_dataset('cblue', 'CMeIE', splits=['train', 'dev'])
 
+    # name = 'ernie-health-chinese' 
+    name = 'ernie-3.0-base-zh'
     model = ElectraForSPO.from_pretrained(
-        'ernie-health-chinese', num_classes=len(train_ds.label_list))
-    tokenizer = ElectraTokenizer.from_pretrained('ernie-health-chinese')
+        name, num_classes=len(train_ds.label_list))
+    tokenizer = AutoTokenizer.from_pretrained(name)
 
     trans_func = partial(
         convert_example_spo,

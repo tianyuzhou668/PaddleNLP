@@ -1,6 +1,6 @@
 import paddle
 import paddle.nn as nn
-from paddlenlp.transformers import ElectraPretrainedModel
+from paddlenlp.transformers import ErniePretrainedModel as ElectraPretrainedModel
 
 
 class ElectraForBinaryTokenClassification(ElectraPretrainedModel):
@@ -31,7 +31,7 @@ class ElectraForBinaryTokenClassification(ElectraPretrainedModel):
                                         self.num_classes_oth)
         self.classifier_sym = nn.Linear(self.electra.config['hidden_size'],
                                         self.num_classes_sym)
-        self.init_weights()
+        # self.init_weights()
 
     def forward(self,
                 input_ids=None,
@@ -99,7 +99,7 @@ class ElectraForSPO(ElectraPretrainedModel):
         self.classifier = nn.Linear(self.electra.config['hidden_size'], 2)
         self.span_attention = MultiHeadAttentionForSPO(
             self.electra.config['hidden_size'], num_classes)
-        self.init_weights()
+        # self.init_weights()
 
     def forward(self,
                 input_ids=None,

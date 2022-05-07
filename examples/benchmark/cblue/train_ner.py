@@ -9,7 +9,7 @@ import numpy as np
 import paddle
 from paddlenlp.data import Pad, Dict
 from paddlenlp.datasets import load_dataset
-from paddlenlp.transformers import ElectraTokenizer
+from paddlenlp.transformers import AutoTokenizer
 
 from model import ElectraForBinaryTokenClassification
 from utils import create_dataloader, convert_example_ner, LinearDecayWithWarmup, NERChunkEvaluator
@@ -80,10 +80,11 @@ def do_train():
 
     train_ds, dev_ds = load_dataset('cblue', 'CMeEE', splits=['train', 'dev'])
 
+    # name = 'ernie-health-chinese'
+    name = 'ernie-3.0-base-zh'
     model = ElectraForBinaryTokenClassification.from_pretrained(
-        'ernie-health-chinese',
-        num_classes=[len(x) for x in train_ds.label_list])
-    tokenizer = ElectraTokenizer.from_pretrained('ernie-health-chinese')
+        name, num_classes=[len(x) for x in train_ds.label_list])
+    tokenizer = AutoTokenizer.from_pretrained(name)
 
     label_list = train_ds.label_list
     pad_label_id = [len(label_list[0]) - 1, len(label_list[1]) - 1]

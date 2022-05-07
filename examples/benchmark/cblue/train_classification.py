@@ -26,7 +26,7 @@ from paddle.metric import Accuracy
 import paddlenlp as ppnlp
 from paddlenlp.data import Stack, Tuple, Pad
 from paddlenlp.datasets import load_dataset
-from paddlenlp.transformers import ElectraForSequenceClassification, ElectraTokenizer
+from paddlenlp.transformers import AutoModelForSequenceClassification, AutoTokenizer
 from paddlenlp.metrics import MultiLabelsMetric, AccuracyAndF1
 
 from utils import convert_example, create_dataloader, LinearDecayWithWarmup
@@ -119,11 +119,11 @@ def do_train():
     train_ds, dev_ds = load_dataset(
         'cblue', args.dataset, splits=['train', 'dev'])
 
-    model = ElectraForSequenceClassification.from_pretrained(
-        'ernie-health-chinese',
-        num_classes=len(train_ds.label_list),
-        activation='tanh')
-    tokenizer = ElectraTokenizer.from_pretrained('ernie-health-chinese')
+    # name = 'ernie-health-chinese'
+    name = 'ernie-3.0-base-zh'
+    model = AutoModelForSequenceClassification.from_pretrained(
+        name, num_classes=len(train_ds.label_list), activation='tanh')
+    tokenizer = AutoTokenizer.from_pretrained(name)
 
     trans_func = partial(
         convert_example,
@@ -229,7 +229,8 @@ def do_train():
             optimizer.clear_grad()
 
             global_step += 1
-            if global_step % args.logging_steps == 0 and rank == 0:
+            if (global_step % args.logging_steps == 0 or
+                    global_step >= num_training_steps) and rank == 0:
                 time_diff = time.time() - tic_train
                 total_train_time += time_diff
                 print(
