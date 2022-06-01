@@ -29,7 +29,7 @@ from paddlenlp.trainer import (
     PdArgumentParser,
     TrainingArguments,
     Trainer, )
-from paddlenlp.trainer.trainer_utils import get_last_checkpoint
+from paddlenlp.trainer import get_last_checkpoint
 from paddlenlp.transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification, )
@@ -89,15 +89,11 @@ class ModelArguments:
         })
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={
-            "help":
-            "Path to directory to store the pretrained models downloaded from huggingface.co"
-        }, )
+        metadata={"help": "Path to directory to store the dataset cache."}, )
     export_model_dir: Optional[str] = field(
         default=None,
         metadata={
-            "help":
-            "Path to directory to store the pretrained models downloaded from huggingface.co"
+            "help": "Path to directory to store the exported inference model."
         }, )
 
 
@@ -318,16 +314,21 @@ def main():
 
     # export inference model
     if training_args.do_export:
+        # You can also load from certain checkpoint
+        # trainer.load_state_dict_from_checkpoint("/path/to/checkpoint/")
         input_spec = [
             paddle.static.InputSpec(
                 shape=[None, None], dtype="int64"),  # input_ids
             paddle.static.InputSpec(
                 shape=[None, None], dtype="int64")  # segment_ids
         ]
-        trainer.export_model(
+        if model_args.export_model_dir is None:
+            model_args.export_model_dir = os.path.join(training_args.output_dir,
+                                                       "export")
+        paddlenlp.transformers.export_model(
+            model=trainer.model,
             input_spec=input_spec,
-            load_best_model=True,
-            output_dir=model_args.export_model_dir)
+            path=model_args.export_model_dir)
 
 
 if __name__ == "__main__":

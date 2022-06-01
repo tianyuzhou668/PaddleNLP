@@ -8,17 +8,631 @@
 
 使用多种**中文**预训练模型微调在 CLUE 的各验证集上有如下结果：
 
-| Model                 | Config   | AVG       | AFQMC     | TNEWS     | IFLYTEK   | CMNLI     | OCNLI     | CLUEWSC2020 | CSL       | CMRC2018        | CHID      | C<sup>3</sup> |
-| --------------------- | -------- | --------- | --------- | --------- | --------- | --------- | --------- | ----------- | --------- | --------------- | --------- | ------------- |
-| RoBERTa-wwm-ext-large | 24L1024H | 76.61     | 76.00     | 59.33     | 62.02     | 83.88     | 78.81     | 90.79       | 83.67     | 70.58/89.82     | 85.72     | 75.26         |
-| RoBERTa-wwm-ext       | 12L768H  | 74.11     | 74.60     | 58.08     | 61.23     | 81.11     | 76.92     | 88.49       | 80.77     | 68.39/88.50     | 83.43     | 68.03         |
-| ERNIE 3.0-Base        | 12L768H  | **76.05** | **75.93** | **58.26** | **61.56** | **83.02** | **80.10** | 86.18       | **82.63** | **70.71/90.41** | **84.26** | **77.88**     |
-| RBT6, Chinese         | 6L768H   | 69.74     | 73.15     | 56.62     | 59.68     | 79.26     | 73.15     | 75.00       | 80.04     | 62.26/84.72     | 78.26     | 59.93         |
-| ERNIE 3.0-Medium      | 6L768H   | **72.49** | **73.37** | **57.00** | **60.67** | **80.64** | **76.88** | **79.28**   | **81.60** | **65.83/87.30** | **79.91** | **69.73**     |
+
+<table style="width:100%;" cellpadding="2" cellspacing="0" border="1" bordercolor="#000000">
+        <tbody>
+                <tr>
+                        <td style="text-align:center;vertical-align:middle">
+                                <span style="font-size:18px;">Arch</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px;">Model</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px;">AVG</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px;">AFQMC</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">TNEWS</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">IFLYTEK</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">CMNLI</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">OCNLI</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">CLUEWSC2020</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">CSL</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">CMRC2018</span>
+                        </td>
+                        <td style="text-align:center;">
+                                <span style="font-size:18px;">CHID</span>
+                        </td>
+                        <td style="text-align:center;">
+                          <span style="font-size:18px;">C<sup>3</sup></span>
+                        </td>  
+                </tr>
+                <tr>
+                        <td rowspan=1 align=center> 24L1024H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">RoBERTa-wwm-ext-large</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.61</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.00</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">59.33</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.02</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">83.88</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">78.81</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">90.79</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">83.67</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">70.58/89.82</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">85.72</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.26</span>
+                        </td>
+                </tr>
+                <tr>
+			<td rowspan=6 align=center> 12L768H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE 3.0-Base-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>76.05</b></span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>75.93</b></span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>58.26</b></span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>61.56</b></span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>83.02</b></span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>80.10</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">86.18</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.63</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">70.71/90.41</span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>84.26</b></span>
+                        </td>  
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>77.88</b></span>
+                        </td>
+                </tr>
+                <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE-Gram-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.72</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.28</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">57.88</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">60.87</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.90</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">79.08</span>
+                        </td>
+                        <td style="text-align:center">
+                          <span style="font-size:18px"><b>88.82</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.83</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">71.82/90.38</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">84.04</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">73.69</span>
+                        </td>
+                </tr>
+               <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">Mengzi-BERT-Base</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.69</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.35</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">57.76</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">61.64</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.41</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">77.93</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">88.16</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.20</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">67.04/88.35</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">83.74</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">70.70</span>
+                        </td>
+                </tr>
+                <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE-1.0</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.17</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.84</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">58.91</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.25</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">81.68</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.58</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">85.20</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.77</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">67.32/87.83</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.47</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">69.68</span>
+                        </td>
+                </tr>
+                         <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">RoBERTa-wwm-ext</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.11</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.60</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">58.08</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">61.23</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">81.11</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.92</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">88.49</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">80.77</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">68.39/88.50</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">83.43</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">68.03</span>
+                        </td>
+                </tr>
+                         <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">BERT-Base-Chinese</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">72.57</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.63</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">57.13</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">61.29</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">80.97</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.22</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">81.91</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">81.90</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">65.30/86.53</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">82.01</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">65.38</span>
+                        </td>
+                </tr>
+                <tr>
+                        <td rowspan=5 align=center> 6L768H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE 3.0-Medium-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>72.49</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>73.37</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>57.00</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>60.67</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>80.64</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>76.88</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>79.28</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>81.60</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>65.83/87.30</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>79.91</b></span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>69.73</b></span>
+                        </td>
+                </tr>
+                <tr>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">HLF/RBT6, Chinese</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">69.74</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">73.15</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">56.62</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">59.68</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">79.26</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">73.15</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.00</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">80.04</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.26/84.72</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">78.26</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">59.93</span>
+                        </td>
+                </tr>
+                <tr>
+                <td style="text-align:center">
+                        <span style="font-size:18px">TinyBERT<sub>6</sub>, Chinese</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">69.58</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">72.22</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">55.70</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">54.48</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">79.12</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">74.07</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">77.63</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">80.17</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.63/83.72</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">77.64</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.11</span>
+                        </td>
+                </tr>
+                <td style="text-align:center">
+                        <span style="font-size:18px">RoFormerV2 Small</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">68.52</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">72.47</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">56.53</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">60.72</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.37</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">72.95</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">75.00</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">81.07</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">62.97/83.64</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">67.66</span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px">59.41</span>
+                        </td>
+                </tr>
+                <tr>
+                <td style="text-align:center">
+                        <span style="font-size:18px">UER/Chinese-RoBERTa (L6-H768)</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">66.67</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">70.13</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">56.41</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">59.79</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">77.38</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">71.86</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">69.41</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">76.73</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">53.22/75.03</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">77.00</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">54.77</span>
+                        </td>
+                </tr>
+                <tr>
+			<td rowspan=1 align=center> 6L384H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE 3.0-Mini-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>66.90</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>71.85</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>55.24</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>54.48</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>77.19</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>73.08</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>71.05</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>79.30</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>58.53/81.97</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>69.71</b></span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>58.60</b></span>
+                        </td>
+                </tr>
+                <tr>
+			<td rowspan=1 align=center> 4L384H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE 3.0-Micro-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>64.21</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>71.15</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>55.05</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>53.83</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>74.81</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>70.41</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>69.08</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>76.50</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>53.77/77.82</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>62.26</b></span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>55.53</b></span>
+                        </td>
+                </tr>
+                <tr>
+			<td rowspan=1 align=center> 4L312H </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px">ERNIE 3.0-Nano-zh</span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>62.97</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>70.51</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>54.57</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>48.36</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>74.97</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>70.61</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>68.75</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>75.93</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>52.00/76.35</b></span>
+                        </td>
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>58.91</b></span>
+                        </td>  
+                        <td style="text-align:center">
+                                <span style="font-size:18px"><b>55.11</b></span>
+                        </td>
+                </tr>
+        <tbody>
+</table>
+<br />
 
 
-
-AFQMC、TNEWS、IFLYTEK、CMNLI、OCNLI、CLUEWSC2020、CSL 、CHID 和 C<sup>3</sup> 任务使用的评估指标均是 Accuracy。CMRC2018 的评估指标是 EM/F1，计算每个模型效果的平均值时，取 EM 为最终指标。
+AFQMC、TNEWS、IFLYTEK、CMNLI、OCNLI、CLUEWSC2020、CSL 、CHID 和 C<sup>3</sup> 任务使用的评估指标均是 Accuracy。CMRC2018 的评估指标是 EM (Exact Match)/F1，计算每个模型效果的平均值时，取 EM 为最终指标。
 
 其中前 7 项属于分类任务，后面 3 项属于阅读理解任务，这两种任务的训练过程在下面将会分开介绍。
 
@@ -40,17 +654,26 @@ AFQMC、TNEWS、IFLYTEK、CMNLI、OCNLI、CLUEWSC2020、CSL 、CHID 和 C<sup>3<
 
 不同预训练模型在下游任务上做 Grid Search 之后的最优超参（learning_rate、batch_size）如下：
 
-| Model                 | AFQMC   | TNEWS   | IFLYTEK | CMNLI   | OCNLI   | CLUEWSC2020 | CSL     | CMRC2018 | CHID    | C<sup>3</sup> |
-| --------------------- | ------- | ------- | ------- | ------- | ------- | ----------- | ------- | -------- | ------- | ------------- |
-| RoBERTa-wwm-ext-large | 1e-5,32 | 3e-5,32 | 2e-5,32 | 1e-5,16 | 1e-5,16 | 2e-5,16     | 2e-5,16 | 3e-5,32  | 1e-5,24 | 2e-5,24       |
-| RoBERTa-wwm-ext       | 3e-5,32 | 3e-5,64 | 5e-5,16 | 3e-5,32 | 2e-5,32 | 3e-5,32     | 2e-5,32 | 3e-5,32  | 2e-5,32 | 3e-5,24       |
-| ERNIE 3.0-Base        | 3e-5,16 | 3e-5,32 | 5e-5,32 | 3e-5,32 | 2e-5,64 | 2e-5,16     | 2e-5,32 | 2e-5,24  | 3e-5,24 | 3e-5,32       |
-| RBT6, Chinese         | 3e-5,16 | 5e-5,16 | 5e-5,16 | 5e-5,64 | 3e-5,32 | 3e-5,32     | 3e-5,16 | 3e-5,32  | 3e-5,24 | 3e-5,24       |
-| ERNIE 3.0-Medium      | 3e-5,32 | 3e-5,64 | 5e-5,32 | 2e-5,32 | 1e-5,64 | 3e-5,16     | 2e-5,32 | 3e-5,24  | 2e-5,24 | 1e-5,24       |
+| Model                            | AFQMC   | TNEWS   | IFLYTEK | CMNLI    | OCNLI    | CLUEWSC2020 | CSL     | CMRC2018 | CHID    | C<sup>3</sup> |
+| -------------------------------- | ------- | ------- | ------- | -------- | -------- | ----------- | ------- | -------- | ------- | ------------- |
+| RoBERTa-wwm-ext-large            | 1e-5,32 | 3e-5,32 | 2e-5,32 | 1e-5,16  | 1e-5,16  | 2e-5,16     | 2e-5,16 | 3e-5,32  | 1e-5,24 | 2e-5,24       |
+| ERNIE 3.0-Base-zh                | 3e-5,16 | 3e-5,32 | 5e-5,32 | 3e-5,32  | 2e-5,64  | 2e-5,16     | 2e-5,32 | 2e-5,24  | 3e-5,24 | 3e-5,32       |
+| ERNIE-Gram-zh                    | 1e-5,16 | 5e-5,16 | 5e-5,16 | 2e-5,32  | 2e-5,64  | 3e-5,16     | 3e-5,64 | 3e-5,32  | 2e-5,24 | 2e-5,24       |
+| Mengzi-Bert-Base                 | 3e-5,32 | 5e-5,32 | 5e-5,16 | 2e-5,16  | 2e-5,16  | 3e-5,8      | 1e-5,16 | 3e-5,24  | 3e-5,24 | 2e-5,32       |
+| ERNIE 1.0                        | 3e-5,16 | 3e-5,32 | 5e-5,16 | 5e-5，32 | 3e-5，16 | 2e-5,8      | 2e-5,16 | 3e-5,32  | 3e-5,24 | 3e-5,24       |
+| RoBERTa-wwm-ext                  | 3e-5,32 | 3e-5,64 | 5e-5,16 | 3e-5,32  | 2e-5,32  | 3e-5,32     | 2e-5,32 | 3e-5,32  | 2e-5,32 | 3e-5,24       |
+| BERT-Base-Chinese                | 2e-5,16 | 5e-5,16 | 5e-5,16 | 5e-5,64  | 3e-5,16  | 3e-5,16     | 1e-5,16 | 3e-5,24  | 2e-5,32 | 3e-5,24       |
+| ERNIE 3.0-Medium-zh              | 3e-5,32 | 3e-5,64 | 5e-5,32 | 2e-5,32  | 1e-5,64  | 3e-5,16     | 2e-5,32 | 3e-5,24  | 2e-5,24 | 1e-5,24       |
+| TinyBERT<sub>6</sub> ,Chinese    | 1e-5,16 | 3e-5,32 | 5e-5,16 | 5e-5,32  | 3e-5,64  | 3e-5,16     | 3e-5,16 | 8,3e-5   | 3e-5,24 | 2e-5,24       |
+| RoFormerV2 Small                 | 5e-5,16 | 2e-5,16 | 5e-5,16 | 5e-5,32  | 2e-5,16  | 3e-5,8      | 3e-5,16 | 3e-5,24  | 3e-5,24 | 3e-5,24       |
+| HLF/RBT6, Chinese                | 3e-5,16 | 5e-5,16 | 5e-5,16 | 5e-5,64  | 3e-5,32  | 3e-5,32     | 3e-5,16 | 3e-5,32  | 3e-5,24 | 3e-5,24       |
+| UER/Chinese-RoBERTa (L6-H768) | 2e-5,16 | 5e-5,32 | 5e-5,16 | 5e-5,32  | 3e-5,16  | 5e-5,8      | 3e-5,16 | 3e-5,24  | 3e-5,24 | 3e-5,32       |
+| ERNIE 3.0-Mini-zh                | 5e-5,64 | 5e-5,64 | 5e-5,16 | 5e-5,32  | 2e-5,16  | 2e-5,8      | 2e-5,16 | 3e-5,24  | 3e-5,24 | 3e-5,24       |
+| ERNIE 3.0-Micro-zh               | 3e-5,16 | 5e-5,32 | 5e-5,16 | 5e-5,16  | 2e-5,32  | 5e-5,16      | 3e-5,64 | 3e-5,24  | 3e-5,32 | 3e-5,24       |
+| ERNIE 3.0-Nano-zh                | 2e-5,32 | 5e-5,16 | 5e-5,16 | 5e-5,16  | 3e-5,16  | 1e-5,8      | 3e-5,32 | 3e-5,24  | 3e-5,24 | 2e-5,24       |
 
 
-
-其中，`ERNIE 3.0-Base`、`ERNIE 3.0-Medium` 在 CLUEWSC2020 处的 dropout_prob 为 0.0，`ERNIE 3.0-Base`、`RBT6, Chinese` 在 IFLYTEK 处的 dropout_prob 为 0.0。
+其中，`ERNIE 3.0-Base-zh`、`ERNIE 3.0-Medium-zh`、`ERNIE-Gram-zh`、`ERNIE 1.0`、`ERNIE 3.0-Mini-zh`、`ERNIE 3.0-Micro-zh`、`ERNIE 3.0-Nano-zh` 在 CLUEWSC2020 处的 dropout_prob 为 0.0，`ERNIE 3.0-Base-zh`、`HLF/RBT6, Chinese`、`Mengzi-BERT-Base`、`ERNIE-Gram-zh`、`ERNIE 1.0` 、`TinyBERT6, Chinese`、`UER/Chinese-RoBERTa (L6-H768)`、`ERNIE 3.0-Mini-zh`、`ERNIE 3.0-Micro-zh`、`ERNIE 3.0-Nano-zh` 在 IFLYTEK 处的 dropout_prob 为 0.0。
 
 
 ## 一键复现模型效果
@@ -88,6 +711,7 @@ python -u ./run_clue_classifier.py \
     --device gpu  \
     --dropout 0.1 \
     --gradient_accumulation_steps 1 \
+    --save_best_model True \
     --do_train \
 
 ```
@@ -95,8 +719,8 @@ python -u ./run_clue_classifier.py \
 另外，如需评估，传入参数 `--do_eval` 即可，如果只对读入的 checkpoint 进行评估不训练，则不需传入 `--do_train`。
 
 其中参数释义如下：
-- `model_name_or_path` 指示了 Fine-tuning 使用的具体预训练模型，可以是 PaddleNLP 提供的预训练模型，可以选择[Transformer预训练模型汇总](../../../docs/model_zoo/transformers.rst)中相对应的中文预训练权重。注意 CLUE 任务应选择中文预训练权重。
 
+- `model_name_or_path` 指示了 Fine-tuning 使用的具体预训练模型，可以是 PaddleNLP 提供的预训练模型，可以选择[Transformer预训练模型汇总](https://paddlenlp.readthedocs.io/zh/latest/model_zoo/index.html#transformer) 中相对应的中文预训练权重。注意 CLUE 任务应选择中文预训练权重。
 - `task_name` 表示 Fine-tuning 的分类任务，当前支持 AFQMC、TNEWS、IFLYTEK、OCNLI、CMNLI、CSL、CLUEWSC2020。
 - `max_seq_length` 表示最大句子长度，超过该长度将被截断。
 - `batch_size` 表示每次迭代**每张卡**上的样本数目。
@@ -104,6 +728,7 @@ python -u ./run_clue_classifier.py \
 - `num_train_epochs` 表示训练轮数。
 - `logging_steps` 表示日志打印间隔。
 - `save_steps` 表示模型保存及评估间隔。
+- `save_best_model` 是否保存在评估集上效果最好的模型，默认为 True
 - `output_dir` 表示模型保存路径。
 - `device` 表示训练使用的设备, 'gpu' 表示使用GPU, 'xpu' 表示使用百度昆仑卡, 'cpu' 表示使用 CPU。
 
@@ -120,7 +745,8 @@ global step 400/20010, epoch: 0, batch: 399, rank_id: 0, loss: 2.631579, lr: 0.0
 eval loss: 2.476962, acc: 0.1697, eval done total : 25.794789791107178 s
 ```
 #### 使用Trainer启动 CLUE 分类任务
-PaddleNLP提供了Trainer API，本示例新增了`run_clue_classifier_trainer.py`脚本供用户使用。需要从源码安装paddlenlp使用。
+PaddleNLP 提供了 Trainer API，本示例新增了`run_clue_classifier_trainer.py`脚本供用户使用。
+
 ```
 export CUDA_VISIBLE_DEVICES=0
 export TASK_NAME=TNEWS
@@ -188,9 +814,61 @@ python -m paddle.distributed.launch --gpus "0,1,2,3" run_c3.py \
 ```
 需要注意的是，如果显存无法容纳所传入的 `batch_size`，可以通过传入 `gradient_accumulation_steps` 参数来模拟该 `batch_size`。
 
+### 批量启动 Grid Search
+
+#### 环境说明
+
+脚本中的默认参数是针对 32G 显卡的机器设置的，如果显卡是 16G 或者更小，可以在`grid_search_tools/run_mrc.sh`中增加每个任务的`${grd_accu_steps}`，`${grd_accu_steps}` 对应于 Python 脚本中的 `--gradient_accumulation_steps` 参数，该参数代表梯度累加的步数。即，实际训练的时候，会以 batch_size 为 `batch_size / ${grd_accu_steps}` 训练 `${grd_accu_steps}` 步来模拟原 batch_size 下的训练。因此也需要保证原 batch_size 能被 `${grd_accu_steps}` 整除。
+
+#### 使用说明
+- `run_all_cls.sh` 分类任务批量启动脚本入口，需要 2 个参数：模型名称或目录、模式 id
+    - 模式 0、1、2 均代表独立的 1 组 4 卡实验，需要在不同的 4 张卡上运行（见下方分类任务的方法二）
+    - 模型 3 代表 同时起 12 组 8 卡实验（见下方分类任务的方法一）
+    - 对于 32G 8 GPUs 卡机器，base 模型可以选模式 3，即 1 组 8 卡，可同时完成所有分类任务。而 large 模型需要分别起模式 0、1、2 三组实验
+- `run_all_mrc.sh` 阅读理解任务批量启动脚本入口，需要 2 个参数：模型名称或目录、模式id
+    - 模式 0、1、2 分别代表起 4 卡 CHID，4 卡 C<sup>3</sup>，2 卡 CMRC2018 实验（见下方阅读理解任务的方法二）
+    - 模式 3 代表 起 8 卡实验，任务会完成 CHID、C<sup>3</sup>、CMRC2018 任务（见下方阅读理解任务的方法一）
+    - 对于 32G 8 GPUs 卡机器，base 模型可以选模式 3
+- `extract_acc.sh` 从日志抽取每个任务的最佳结果，需要 1 个参数：模型名称或目录。调用前需要确认训练均全部完成，并且该目录下有分类和阅读理解任务所有的日志。可以把打印出的 10 个任务的结果直接复制到表格中。例如：
+
+```
+AFQMC	TNEWS	IFLYTEK	CMNLI	OCNLI	CLUEWSC2020	CSL	CMRC2018	CHID	C3
+75.3    557.45  60.18   81.16   77.19   79.28   81.93   65.83/87.29     80.00   70.36
+```
+
+
+```shell
+cd grid_search_tools
+# 7 个分类任务
+# 方法一：3 代表模式 3，1 组 8 卡实验（适用于 base 及更小的模型）
+bash run_all_cls.sh ernie-3.0-nano-zh 3 # 第二个参数 3 就代表模式 3
+
+# 方法二：0、1、2 分别代表模式 0、1、2，代表起了 3 组 4 卡实验（适用于较大的模型）
+bash run_all_cls.sh ernie-3.0-nano-zh 0
+bash run_all_cls.sh ernie-3.0-nano-zh 1
+bash run_all_cls.sh ernie-3.0-nano-zh 2
+
+# 3 个阅读理解任务
+# 对于32G 8 GPUs 卡机器，base 模型可以选模式 3
+
+# 方法一：3 代表模式3，1组8卡实验
+bash run_all_mrc.sh ernie-3.0-nano-zh 3
+
+# 方法二：对于较大模型，分别起3组实验：
+bash run_all_mrc.sh ernie-3.0-nano-zh 0
+bash run_all_mrc.sh ernie-3.0-nano-zh 1
+bash run_all_mrc.sh ernie-3.0-nano-zh 2
+```
+
+确认模型所有任务训练完成后，可以调用脚本 `extract_acc.sh` 一键抽取 Grid Search 结果
+
+```shell
+sh extract_acc.sh ernie-3.0-nano-zh
+```
+
 ## 参加 CLUE 竞赛
 
-对各个任务运行预测脚本，汇总多个结果文件压缩之后，即可提交至CLUE官网进行评测。
+对各个任务运行预测脚本，汇总多个结果文件压缩之后，即可提交至 CLUE 官网进行评测。
 
 下面 2 小节会分别介绍分类、阅读理解任务产生预测结果的方法。
 
