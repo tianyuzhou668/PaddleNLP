@@ -537,9 +537,8 @@ class Trainer:
                         tr_loss_step = self.training_step(model, inputs)
                 else:
                     tr_loss_step = self.training_step(model, inputs)
-                del inputs
 
-                tr_loss.add_(tr_loss_step)
+                tr_loss += tr_loss_step
 
                 if (step + 1) % args.gradient_accumulation_steps == 0 or (
                         # last step in epoch but step is always smaller than gradient_accumulation_steps
