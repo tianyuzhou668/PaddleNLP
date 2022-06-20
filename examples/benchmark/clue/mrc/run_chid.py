@@ -528,8 +528,8 @@ def run(args):
                                args.logging_steps / (time.time() - tic_train)))
                         tic_train = time.time()
                 if global_step >= num_training_steps:
-                    print("best_acc: %.2f" % (best_acc * 100))
-                    return
+                    break
+
             tic_eval = time.time()
             acc = evaluate(model, dev_data_loader)
             print("eval acc: %.5f, eval done total : %s s" %
@@ -543,6 +543,8 @@ def run(args):
                         os.makedirs(args.output_dir)
                     model_to_save.save_pretrained(args.output_dir)
                     tokenizer.save_pretrained(args.output_dir)
+            if global_step >= num_training_steps:
+                break
 
         print("best_acc: %.2f" % (best_acc * 100))
 
