@@ -22,6 +22,8 @@ import os
 import re
 import time
 import collections
+import random
+import heapq
 
 import numpy as np
 import paddle
@@ -321,6 +323,50 @@ def is_start_piece(piece):
     return not piece.startswith("##")
 
 
+def A_ExpJ(np_rng, samples, m):
+    """
+    Weighted Random Sampling
+    https://lotabout.me/2018/Weighted-Random-Sampling/
+
+    :samples: [(item, weight), ...]
+    :k: number of selected items
+    :returns: [(item, weight), ...]
+    """
+
+    heap = []  # [(new_weight, item), ...]
+
+    Xw = None
+    Tw = 0
+    w_acc = 0
+    for sample in samples:
+        if len(heap) < m:
+            wi = sample[1]
+            ui = np_rng.random()
+            ki = ui**(1 / wi)
+            heapq.heappush(heap, (ki, sample))
+            continue
+
+        if w_acc == 0:
+            Tw = heap[0][0]
+            r = np_rng.random()
+            Xw = math.log(r) / math.log(Tw)
+
+        wi = sample[1]
+        if w_acc + wi < Xw:
+            w_acc += wi
+            continue
+        else:
+            w_acc = 0
+
+        tw = Tw**wi
+        r2 = np_rng.random()
+        ki = r2**(1 / wi)
+        heapq.heappop(heap)
+        heapq.heappush(heap, (ki, sample))
+
+    return [item[1][0] for item in heap]
+
+
 def create_masked_lm_predictions(tokens,
                                  vocab_id_list,
                                  vocab_id_to_token_dict,
@@ -338,9 +384,15 @@ def create_masked_lm_predictions(tokens,
                                  geometric_dist=False,
                                  to_chinese_char=False,
                                  inplace_random_mask=False,
+                                 do_importance_sampling=False,
+                                 token_importance=None,
                                  masking_style="bert"):
     """Creates the predictions for the masked LM objective.
     Note: Tokens here are vocab ids and not text tokens."""
+    if do_importance_sampling:
+        explore_mask_lm_prob = min(0.15, 1 - masked_lm_prob)
+    else:
+        explore_mask_lm_prob = 0.0
 
     cand_indexes = []
     # Note(mingdachen): We create a list for recording if the piece is
@@ -358,9 +410,9 @@ def create_masked_lm_predictions(tokens,
         # Note that Whole Word Masking does *not* change the training code
         # at all -- we still predict each WordPiece independently, softmaxed
         # over the entire vocabulary.
-        vocab_id = vocab_id_to_token_dict[token]
+        vocab_token = vocab_id_to_token_dict[token]
         if (do_whole_word_mask and len(cand_indexes) >= 1
-                and not is_start_piece(vocab_id)):
+                and not is_start_piece(vocab_token)):
             cand_indexes[-1].append(i)
         else:
             cand_indexes.append([i])
@@ -373,12 +425,13 @@ def create_masked_lm_predictions(tokens,
         assert vocab_token_to_id_dict is not None
         for i, b in enumerate(token_boundary):
             if b == 0:
-                vocab_id = vocab_id_to_token_dict[tokens[i]]
-                new_vocab_id = vocab_id[2:] if len(
-                    re.findall('##[\u4E00-\u9FA5]', vocab_id)) > 0 else vocab_id
-                char_tokens.append(
-                    vocab_token_to_id_dict[new_vocab_id] if new_vocab_id in
-                    vocab_token_to_id_dict else token)
+                vocab_token = vocab_id_to_token_dict[tokens[i]]
+                new_vocab_token = vocab_token[2:] if len(
+                    re.findall('##[\u4E00-\u9FA5]',
+                               vocab_token)) > 0 else vocab_token
+                char_tokens.append(vocab_token_to_id_dict[new_vocab_token]
+                                   if new_vocab_token in
+                                   vocab_token_to_id_dict else token)
             else:
                 char_tokens.append(tokens[i])
         output_tokens = list(char_tokens)
@@ -392,8 +445,10 @@ def create_masked_lm_predictions(tokens,
         return (output_tokens, masked_lm_positions, masked_lm_labels,
                 token_boundary)
 
-    num_to_predict = min(max_predictions_per_seq,
-                         max(1, int(round(len(tokens) * masked_lm_prob))))
+    num_to_predict = min(
+        max_predictions_per_seq,
+        max(1,
+            int(round(len(tokens) * (masked_lm_prob + explore_mask_lm_prob)))))
 
     ngrams = np.arange(1, max_ngrams + 1, dtype=np.int64)
     if not geometric_dist:
@@ -468,7 +523,8 @@ def create_masked_lm_predictions(tokens,
                     masked_token = mask_id
                 else:
                     # 10% of the time, keep original
-                    if np_rng.random() < 0.5:
+                    # nerver keep original
+                    if np_rng.random() < 0.0:
                         masked_token = output_tokens[index]
                     # 10% of the time, replace with random word
                     else:
@@ -549,6 +605,37 @@ def create_masked_lm_predictions(tokens,
     masked_lms = sorted(masked_lms, key=lambda x: x.index)
     # Sort the spans by the index of the first span
     masked_spans = sorted(masked_spans, key=lambda x: x.index[0])
+
+    def p(lms):
+        # for lm in lms:
+        return
+        print([vocab_id_to_token_dict[lm.label] for lm in lms])
+        print("avg_importance",
+              sum([token_importance[lm.label] for lm in lms]) / len(lms))
+
+    p(masked_lms)
+
+    if do_importance_sampling:
+        assert token_importance is not None
+        expected_len = max(
+            int(
+                len(masked_lms) * masked_lm_prob /
+                (masked_lm_prob + explore_mask_lm_prob)), 1)
+        importance_masked_lms = A_ExpJ(np_rng,
+                                       [(k, 1.2**token_importance[k.label])
+                                        for k in masked_lms], expected_len)
+        select_index = set([x.index for x in importance_masked_lms])
+        # print("select_indexes: ", select_index, len(importance_masked_lms))
+        deleted_lms = []
+        for lm in masked_lms:
+            if lm.index not in select_index:
+                output_tokens[lm.index] = lm.label
+                deleted_lms.append(lm)
+        p(deleted_lms)
+
+        masked_lms = sorted(importance_masked_lms, key=lambda x: x.index)
+
+    p(masked_lms)
 
     for p in masked_lms:
         masked_lm_positions.append(p.index)

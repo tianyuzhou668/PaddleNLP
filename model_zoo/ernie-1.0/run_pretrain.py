@@ -447,6 +447,8 @@ def do_train(args):
 
     tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name_or_path)
     tokenizer.extend_chinese_char()
+    if args.frequence_balance_mask:
+        tokenizer.load_token_importance()
 
     data_file = get_train_data_file(args)
     train_data_loader, valid_data_loader, test_data_loader = create_pretrained_dataset(

@@ -222,6 +222,7 @@ class ErnieTokenizer(PretrainedTokenizer):
                 .format(vocab_file))
         self.do_lower_case = do_lower_case
         self.vocab = self.load_vocabulary(vocab_file, unk_token=unk_token)
+        self.vocab_file = vocab_file
         self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab,
                                                       unk_token=unk_token)
@@ -235,6 +236,24 @@ class ErnieTokenizer(PretrainedTokenizer):
             int: The size of vocabulary.
         """
         return len(self.vocab)
+
+    def load_token_importance(self):
+        """
+        Load token importance for Frequence Balance Mask.
+        """
+        assert self.vocab_file.endswith(".txt")
+        idf_file = self.vocab_file.replace(".txt", ".idf")
+        if not os.path.exists(idf_file):
+            self.token_importance = None
+            raise ValueError(f"Can find the importance file in {idf_file}")
+        else:
+            self.token_importance = dict()
+            with open(idf_file, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    res = line.strip().split(" ")
+                    self.token_importance[int(res[0])] = float(res[1])
+            print("Loaded file {idf_file} to token_importance.")
 
     def extend_chinese_char(self):
         """

@@ -57,6 +57,8 @@ class ErnieDataset(paddle.io.Dataset):
         self.binary_head = binary_head
         self.share_folder = share_folder
 
+        self.token_importance = getattr(tokenizer, "token_importance", None)
+
         # Dataset.
         self.indexed_dataset = indexed_dataset
 
@@ -118,13 +120,26 @@ class ErnieDataset(paddle.io.Dataset):
             self.pad_id,
             self.masked_lm_prob,
             np_rng,
-            self.binary_head)
+            self.binary_head,
+            self.token_importance)
 
 
-def build_training_sample(sample, target_seq_length, max_seq_length,
-                          vocab_id_list, vocab_id_to_token_dict,
-                          vocab_token_to_id_dict, cls_id, sep_id, mask_id,
-                          pad_id, masked_lm_prob, np_rng, binary_head):
+def build_training_sample(
+    sample,
+    target_seq_length,
+    max_seq_length,
+    vocab_id_list,
+    vocab_id_to_token_dict,
+    vocab_token_to_id_dict,
+    cls_id,
+    sep_id,
+    mask_id,
+    pad_id,
+    masked_lm_prob,
+    np_rng,
+    binary_head,
+    token_importance=None,
+):
     """Biuld training sample.
 
     Arguments:
@@ -186,6 +201,9 @@ def build_training_sample(sample, target_seq_length, max_seq_length,
          vocab_token_to_id_dict=vocab_token_to_id_dict,
          to_chinese_char=True,
          inplace_random_mask=False,
+         max_ngrams=5,
+         do_importance_sampling=token_importance is not None,
+         token_importance=token_importance,
      )
 
     # Padding.
