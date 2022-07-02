@@ -390,7 +390,7 @@ def create_masked_lm_predictions(tokens,
     """Creates the predictions for the masked LM objective.
     Note: Tokens here are vocab ids and not text tokens."""
     if do_importance_sampling:
-        explore_mask_lm_prob = min(0.15, 1 - masked_lm_prob)
+        explore_mask_lm_prob = min(0.10, 1 - masked_lm_prob)
     else:
         explore_mask_lm_prob = 0.0
 
@@ -524,7 +524,7 @@ def create_masked_lm_predictions(tokens,
                 else:
                     # 10% of the time, keep original
                     # nerver keep original
-                    if np_rng.random() < 0.0:
+                    if np_rng.random() < 0.5:
                         masked_token = output_tokens[index]
                     # 10% of the time, replace with random word
                     else:
@@ -626,14 +626,20 @@ def create_masked_lm_predictions(tokens,
                                         for k in masked_lms], expected_len)
         select_index = set([x.index for x in importance_masked_lms])
         # print("select_indexes: ", select_index, len(importance_masked_lms))
-        deleted_lms = []
+        unimport_lms = []
         for lm in masked_lms:
             if lm.index not in select_index:
-                output_tokens[lm.index] = lm.label
-                deleted_lms.append(lm)
-        p(deleted_lms)
+                # output_tokens[lm.index] = lm.label
+                unimport_lms.append(lm)
 
-        masked_lms = sorted(importance_masked_lms, key=lambda x: x.index)
+        p(unimport_lms)
+        shuffle_unimport_labels = [x.label for x in unimport_lms]
+        np_rng.shuffle(shuffle_unimport_labels)
+        for lm, label in zip(unimport_lms, shuffle_unimport_labels):
+            # if output_tokens[]
+            output_tokens[lm.index] = label
+
+        # masked_lms = sorted(importance_masked_lms, key=lambda x: x.index)
 
     p(masked_lms)
 
