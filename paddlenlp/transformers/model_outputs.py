@@ -51,6 +51,8 @@ def layer_init_wrapper(func):
             self.enable_recompute = enable_recompute
         else:
             self.enable_recompute = False
+        # self.enhance_mask_encoder = False
+        self.enhance_mask_encoder = True
 
     return _impl
 
@@ -183,6 +185,37 @@ def _transformer_encoder_fwd(self,
         if new_caches is not None:
             new_caches.append(outputs[0] if isinstance(
                 cache[i], MultiHeadAttention.Cache) else (tuple(outputs[0])))
+
+    if self.enhance_mask_encoder:
+        # style 1, enhance on fisrt two layer
+        # for i, mod in enumerate(self.layers[1::-1]):
+        # style 2, enhance on last two layer
+        # for i, mod in enumerate(self.layers[-2:]):
+        # style 3, deberta style. enhance last layer twice
+        # layers = [self.layers[-1] for _ in range(2)]
+        # style 3, deberta style. enhance first layer twice
+        # layers = [self.layers[0] for _ in range(2)]
+        # layers = [self.layers[0] for _ in range(2)]
+
+        # style 1, enhance on fisrt two layer
+        layers = self.layers[1::-1]
+        for i, mod in enumerate(layers):
+            if self.enable_recompute:
+                # Note: recompute do not support pass as **kwargs yet.
+                layer_outputs = recompute(mod, output, src_mask, None,
+                                          output_attentions)
+            else:
+                layer_outputs = mod(output,
+                                    src_mask=src_mask,
+                                    cache=None,
+                                    output_attentions=output_attentions)
+
+            if isinstance(layer_outputs, tuple):
+                output = layer_outputs[0]
+                outputs = layer_outputs[1:]
+            else:
+                output = layer_outputs
+                outputs = None
 
     if self.norm is not None:
         output = self.norm(output)

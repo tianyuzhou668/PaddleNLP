@@ -70,6 +70,10 @@ class PreTrainingArguments(TrainingArguments):
             "The steps use to control the learing rate. If the step > decay_steps, will use the min_learning_rate."
         },
     )
+    continue_training: bool = field(
+        default=False,
+        metadata={"help": "continue traineing form exists weights."},
+    )
 
 
 @dataclass
@@ -103,6 +107,14 @@ class DataArguments:
     short_seq_prob: float = field(
         default=0.1,
         metadata={"help": "Short sequence prob."},
+    )
+    favor_longer_ngram: bool = field(
+        default=False,
+        metadata={"help": "favor longer ngram."},
+    )
+    max_ngrams: int = field(
+        default=3,
+        metadata={"help": "max ngrams"},
     )
     share_folder: bool = field(
         default=False,
@@ -387,7 +399,7 @@ def main():
     pretrained_models_list = list(
         model_class.pretrained_init_configuration.keys())
 
-    if model_args.model_name_or_path in pretrained_models_list and not args.continue_training:
+    if model_args.model_name_or_path in pretrained_models_list and not training_args.continue_training:
         logger.warning(
             f"Your model {args.model_name_or_path} is training from scratch !!!"
         )
@@ -400,7 +412,8 @@ def main():
         # model_config["enable_recompute"] = args.use_recompute
     else:
         logger.warning(
-            f"Your model is continue training from {args.model_name_or_path}")
+            f"Your model is continue training from {model_args.model_name_or_path}"
+        )
         model = model_class.from_pretrained(
             model_args.model_name_or_path,
             hidden_dropout_prob=model_args.hidden_dropout_prob,
