@@ -1969,6 +1969,7 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
         model_to_load = model
         if len(cls.base_model_prefix) > 0 and not hasattr(model, cls.base_model_prefix) and has_prefix_module:
             start_prefix = cls.base_model_prefix + "."
+
         if len(cls.base_model_prefix) > 0 and hasattr(model, cls.base_model_prefix) and not has_prefix_module:
             model_to_load = getattr(model, cls.base_model_prefix)
             base_model_expected_keys = list(model_to_load.state_dict().keys())
@@ -2023,9 +2024,7 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
             # To avoid recursive import temporarily.
             import paddlenlp.ops.fast_transformer.transformer.decoding as ft_decoding
 
-            state_to_load = ft_decoding.get_ft_para_conf().fit_partial_model(model_to_load, state_dict)
-            if paddle.in_dynamic_mode():
-                model_to_load.set_state_dict(state_to_load)
+            state_dict = ft_decoding.get_ft_para_conf().fit_partial_model(model_to_load, state_dict)
 
             mismatched_keys = _find_mismatched_keys(
                 state_dict,

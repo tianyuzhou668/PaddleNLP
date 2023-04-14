@@ -151,6 +151,8 @@ class LlamaConfig(PretrainedConfig):
         use_cache=True,
         use_pure_fp16=False,
         use_recompute=False,
+        tensor_parallel_output=True,
+        lm_shift_labels=True,
         pad_token_id=0,
         bos_token_id=1,
         eos_token_id=2,
@@ -167,6 +169,8 @@ class LlamaConfig(PretrainedConfig):
         self.use_cache = use_cache
         self.use_pure_fp16 = use_pure_fp16
         self.use_recompute = use_recompute
+        self.tensor_parallel_output = tensor_parallel_output
+        self.lm_shift_labels = lm_shift_labels
         self.pad_token_id = pad_token_id
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
