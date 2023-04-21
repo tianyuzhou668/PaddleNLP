@@ -72,7 +72,7 @@ class TestMarkupLM(unittest.TestCase):
         from markuplmft import MarkupLMTokenizer
 
         # {'input_ids': [[0, 387, 5526, 257, 16, 10, 372, 138, 6979, 5, 232, 328, 2]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]}
-        sentences = ["Baidu is a great company int the world!"]
+        sentences = ["Baidu is a great company in the world!"]
 
         tokenizer = MarkupLMTokenizer.from_pretrained("microsoft/markuplm-base")
         torch_ids = tokenizer(sentences)
