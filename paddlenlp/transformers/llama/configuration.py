@@ -179,5 +179,6 @@ class LlamaConfig(PretrainedConfig):
             pad_token_id=pad_token_id,
             bos_token_id=bos_token_id,
             eos_token_id=eos_token_id,
+            tensor_parallel_output=tensor_parallel_output,
             **kwargs,
         )

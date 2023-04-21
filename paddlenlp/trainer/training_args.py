@@ -439,6 +439,7 @@ class TrainingArguments:
     )
     tensor_parallel_degree: int = field(default=-1, metadata={"help": ("-1 for not use tensor parallel")})
     pipeline_parallel_degree: int = field(default=-1, metadata={"help": ("-1 for not use pipeline parallel")})
+
     recompute: bool = field(
         default=False,
         metadata={
@@ -669,12 +670,24 @@ class TrainingArguments:
             # TODO use paddle.distributed.is_initialized() after paddle 2.4rc
             if not paddle.distributed.parallel.parallel_helper._is_parallel_ctx_initialized():
                 strategy = fleet.DistributedStrategy()
+                if pipeline_parallel_degree > 1:
+                    strategy.pipeline_configs = {
+                        "accumulate_steps": self.gradient_accumulation_steps,
+                        "micro_batch_size": self.per_device_train_batch_size,
+                        # "enable_partial_send_recv": False,
+                        # 'p2p_cache_shape': False,
+                    }
+                    # strategy.pipeline_configs['p2p_cache_shape'] = False
+                if tensor_parallel_degree > 1:
+                    strategy.tensor_parallel_configs = {"tensor_init_seed": self.seed}
+
                 strategy.hybrid_configs = {
                     "dp_degree": self.data_parallel_degree,
                     "mp_degree": tensor_parallel_degree,
                     "pp_degree": pipeline_parallel_degree,
                     "sharding_degree": sharding_parallel_degree,
                 }
+
                 fleet.init(is_collective=True, strategy=strategy)
                 logger.info(strategy)
 
