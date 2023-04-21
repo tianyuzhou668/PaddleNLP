@@ -652,9 +652,9 @@ class Trainer:
                 # for paddlenlp.utils.batch_sampler.DistributedBatchSampler
                 # We use consumed_samples to reset the status
 
-                # for _ in range(10):
-                #     self.training_step(model, None)
-                # raise ValueError()
+                for _ in range(10):
+                    self.training_step(model, None)
+                raise ValueError()
 
                 if isinstance(train_dataloader, paddle.io.DataLoader) and isinstance(
                     train_dataloader.batch_sampler, NlpDistributedBatchSampler
@@ -1454,21 +1454,25 @@ class Trainer:
         Return:
             `paddle.Tensor`: The tensor with training loss on this batch.
         """
-        # if inputs is not None:
-        #     print("\n\n")
-        #     for k,v in inputs.items():
-        #         print("=========inputs==:", k, v.shape, v.dtype)
+        if inputs is not None:
+            print("\n\n")
+            for k, v in inputs.items():
+                print("=========inputs==:", k, v.shape, v.dtype)
 
-        #     inputs = [inputs.pop("input_ids"), inputs.pop("labels")]
-        # else:
-        #     # seq_len = 1166
-        #     bs = self.args.per_device_train_batch_size * self.args.gradient_accumulation_steps
-        #     input_ids = paddle.to_tensor([[x for x in range(100, 100 + seq_len)] ]  * bs, dtype="int64")
-        #     labels = paddle.to_tensor([[x for x in range(101, 101 + seq_len)] ] * bs, dtype="int64")
-        #     inputs = [input_ids, labels]
+            inputs = [inputs.pop("input_ids"), inputs.pop("labels")]
+        else:
+            seq_len = 1166
+            # seq_len = 170 / 171
+            # 4*170*768 < 2M
+            # 4*171*768 < 2M
+            bs = self.args.per_device_train_batch_size * self.args.gradient_accumulation_steps
+            input_ids = paddle.to_tensor([[x for x in range(100, 100 + seq_len)]] * bs, dtype="int64")
+            labels = paddle.to_tensor([[x for x in range(101, 101 + seq_len)]] * bs, dtype="int64")
+            inputs = [input_ids, labels]
 
-        # loss = model.train_batch(inputs, self.optimizer)
-        # return loss.detach()
+        logger.info("model.train_batch")
+        loss = model.train_batch(inputs, self.optimizer)
+        return loss.detach()
 
         # input_ids = inputs.pop("input_ids")
         # bs = input_ids.shape[0]
