@@ -367,7 +367,7 @@ def paddlenlp_hub_download(
     if is_url(repo_id):
         # check wether the target file exist in the comunity bos server
         if url_file_exists(repo_id):
-            print("Downloading {repo_id}")
+            logger.info(f"Downloading {repo_id}")
             weight_file_path = get_path_from_url_with_filelock(repo_id, cache_dir)
             # # check the downloaded weight file and registered weight file name
             download_check(repo_id, "paddlenlp_hub_download")
@@ -397,7 +397,7 @@ def paddlenlp_hub_download(
 
     # check wether the target file exist in the comunity bos server
     if url_file_exists(community_model_file_path):
-        print("Downloading {community_model_file_path}")
+        logger.info(f"Downloading {community_model_file_path}")
         weight_file_path = get_path_from_url_with_filelock(community_model_file_path, cache_dir)
         # # check the downloaded weight file and registered weight file name
         download_check(community_model_file_path, "paddlenlp_hub_download")

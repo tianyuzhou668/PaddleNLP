@@ -439,6 +439,7 @@ class TrainingArguments:
     )
     tensor_parallel_degree: int = field(default=-1, metadata={"help": ("-1 for not use tensor parallel")})
     pipeline_parallel_degree: int = field(default=-1, metadata={"help": ("-1 for not use pipeline parallel")})
+    # pipeline_parallel_config: str()
 
     recompute: bool = field(
         default=False,
@@ -675,7 +676,7 @@ class TrainingArguments:
                         "accumulate_steps": self.gradient_accumulation_steps,
                         "micro_batch_size": self.per_device_train_batch_size,
                         # "enable_partial_send_recv": False,
-                        # 'p2p_cache_shape': False,
+                        # "p2p_cache_shape": False,
                     }
                     # strategy.pipeline_configs['p2p_cache_shape'] = False
                 if tensor_parallel_degree > 1:
