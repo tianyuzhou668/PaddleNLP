@@ -235,7 +235,9 @@ class LlamaAttention(nn.Layer):
         self.num_heads = config.num_attention_heads
         self.head_dim = self.hidden_size // self.num_heads
         if config.tensor_parallel_degree > 1:
-            assert self.num_heads % config.tensor_parallel_degree == 0
+            assert (
+                self.num_heads % config.tensor_parallel_degree == 0
+            ), "num_heads: {self.num_heads}, tensor_parallel_degree: {config.tensor_parallel_degree}"
             self.num_heads = self.num_heads // config.tensor_parallel_degree
 
         if config.tensor_parallel_degree > 1:
@@ -471,12 +473,15 @@ class LlamaPretrainedModel(PretrainedModel):
                 "layers.0.self_attn.v_proj.weight": partial(fn, is_column=True),
                 "layers.0.mlp.gate_proj.weight": partial(fn, is_column=True),
                 "layers.0.mlp.up_proj.weight": partial(fn, is_column=True),
-                "lm_head.weight": partial(fn, is_column=True),
+                # "lm_head.weight": partial(fn, is_column=True), # need config.tensor_parallel_output, since llama is not sharding weight.
                 # Row Linear
                 "embed_tokens.weight": partial(fn, is_column=False),
                 "layers.0.self_attn.o_proj.weight": partial(fn, is_column=False),
                 "layers.0.mlp.down_proj.weight": partial(fn, is_column=False),
             }
+            if config.tensor_parallel_output:
+                base_actions["lm_head.weight"] = partial(fn, is_column=True)
+
             for key, action in base_actions.items():
                 if "layers.0." in key:
                     for i in range(num_layers):
@@ -700,6 +705,7 @@ class LlamaPretrainingCriterion(paddle.nn.Layer):
             self.loss_func = paddle.nn.CrossEntropyLoss(reduction="none", ignore_index=ignore_index)
 
     def forward(self, prediction_scores, masked_lm_labels):
+        print("LlamaPretrainingCriterion:", prediction_scores.shape, masked_lm_labels.shape)
         masked_lm_loss = self.loss_func(prediction_scores, masked_lm_labels.unsqueeze(2))
         with paddle.amp.auto_cast(False):
             masked_lm_loss = masked_lm_loss.astype("float32")
@@ -712,7 +718,11 @@ class LlamaPretrainingCriterion(paddle.nn.Layer):
 class LlamaLMHead(nn.Layer):
     def __init__(self, config, embedding_weights=None):
         super(LlamaLMHead, self).__init__()
-        vocab_size = config.vocab_size // max(config.tensor_parallel_degree, 1)
+        if config.tensor_parallel_degree > 1 and config.tensor_parallel_output:
+            vocab_size = config.vocab_size // config.tensor_parallel_degree
+        else:
+            vocab_size = config.vocab_size
+
         self.weight = self.create_parameter(
             shape=[config.hidden_size, vocab_size],
             dtype=paddle.get_default_dtype(),

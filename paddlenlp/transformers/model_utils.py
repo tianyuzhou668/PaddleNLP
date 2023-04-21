@@ -559,6 +559,7 @@ def shard_checkpoint(
         # Add the last block
         sharded_state_dicts.append(current_block)
 
+    # todo support pipeline strict ？
     if shard_format == "pipeline":
         parttion_map = _partion_for_pipeline_mode(state_dict.keys())
         partition_num = max(parttion_map.values())
@@ -1906,6 +1907,7 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
         loaded_keys: List[str],
         resolved_archive_file,
         pretrained_model_name_or_path,
+        config=None,
         ignore_mismatched_sizes=False,
         low_cpu_mem_usage=False,
         dtype=None,
@@ -2065,6 +2067,8 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
                 )
 
                 if low_cpu_mem_usage:
+                    # lazy convert for load meta
+                    state_dict = cls.convert_tensor_parallel(None, config, state_dict, ignore_error=True)
                     new_error_msgs = _load_state_dict_into_meta_model(
                         model_to_load,
                         state_dict,
@@ -2264,7 +2268,7 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
                         "or conversion is been disabled by `ENABLE_TORCH_CHECKPOINT` environment variable"
                     )
             else:
-                # 4. loading the state dict
+                # 4. loading the state dict for tensor parallel
                 if config.tensor_parallel_degree > 1 and resolved_archive_file.endswith("model_state.pdparams"):
                     state_dict = cls.convert_tensor_parallel(resolved_archive_file, config)
                 else:
@@ -2289,6 +2293,7 @@ class PretrainedModel(Layer, GenerationMixin, ConversionMixin):
             loaded_keys=loaded_state_dict_keys,
             resolved_archive_file=resolved_archive_file,
             pretrained_model_name_or_path=pretrained_model_name_or_path,
+            config=config,
             ignore_mismatched_sizes=ignore_mismatched_sizes,
             low_cpu_mem_usage=low_cpu_mem_usage,
             dtype=dtype,

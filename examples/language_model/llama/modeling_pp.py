@@ -23,6 +23,7 @@ from paddlenlp.transformers.llama.modeling import (
     LlamaConfig,
     LlamaDecoderLayer,
     LlamaLMHead,
+    LlamaPretrainedModel,
     LlamaPretrainingCriterion,
     RMSNorm,
 )
@@ -123,6 +124,7 @@ class LlamaForCausalLMPipe(PipelinePretrainedModel, PipelineLayer):
 
     config_class = LlamaConfig
 
+    _get_tensor_parallel_mappings = LlamaPretrainedModel._get_tensor_parallel_mappings
     # NO base_model_prefix !!!!
 
     def __init__(

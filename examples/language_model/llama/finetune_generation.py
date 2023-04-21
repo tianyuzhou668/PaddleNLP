@@ -18,6 +18,7 @@ from functools import partial
 
 import paddle
 from data import DataCollatorForSupervisedDataset, convert_example
+from modeling_pp import LlamaForCausalLMPipe
 from utils import LlamaTrainer, compute_metrics
 
 from paddlenlp.datasets import load_dataset
@@ -61,6 +62,9 @@ class ModelArgument:
 def main():
     parser = PdArgumentParser((ModelArgument, DataArgument, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    # data_args.always_pad_to_max_length = False
+    data_args.always_pad_to_max_length = training_args.pipeline_parallel_degree > 1
+
     training_args.print_config(model_args, "Model")
     training_args.print_config(data_args, "Data")
     setattr(training_args, "label_smoothing", model_args.label_smoothing)
@@ -97,8 +101,12 @@ def main():
         if training_args.bf16:
             dtype = "bfloat16"
 
+    model_class = AutoModelForCausalLM
+    if training_args.pipeline_parallel_degree > 1:
+        model_class = LlamaForCausalLMPipe
+
     # Load the pretrained language model.
-    model = AutoModelForCausalLM.from_pretrained(
+    model = model_class.from_pretrained(
         model_args.model_name_or_path,
         load_state_as_np=True,
         low_cpu_mem_usage=True,
@@ -107,6 +115,12 @@ def main():
         tensor_parallel_rank=training_args.tensor_parallel_rank,
         use_recompute=True,
     )
+
+    for k, v in model.state_dict().items():
+        print(k, v.shape, v.dtype)
+    training_args.print_config()
+    # return
+
     if model_args.lora:
         # TODO: hardcode parameters for now. Change after MergedLoRA is introduced
         lora_config = LoRAConfig(
@@ -153,6 +167,13 @@ def main():
         tokenizer=tokenizer,
     )
 
+    accumulate_steps = training_args.gradient_accumulation_steps
+    micro_batch_size = training_args.per_device_train_batch_size
+
+    # optimizer = paddle.optimizer.AdamW(learning_rate=0.00001, parameters=model.parameters())
+    # model = paddle.distributed.fleet.distributed_model(model)
+    # optimizer = paddle.distributed.fleet.distributed_optimizer(optimizer)
+
     trainer = LlamaTrainer(
         model=model,
         args=training_args,
@@ -163,6 +184,18 @@ def main():
         do_generation=True,
         data_collator=collate_fn,
     )
+
+    # trainer.create_optimizer_and_scheduler(num_training_steps=500)
+    # model = trainer._wrap_model(trainer.model_wrapped)
+
+    # seq_len = 357
+    # input_ids = paddle.to_tensor([[x for x in range(100, 100+ seq_len)]] * (accumulate_steps*micro_batch_size), dtype="int64")
+    # labels = paddle.to_tensor([[x for x in range(101, 101 + seq_len)]] * (accumulate_steps*micro_batch_size), dtype="int64")
+    # data = [input_ids, labels]
+    # for i in range(10):
+    #     loss = model.train_batch( data, optimizer=trainer.optimizer)
+    #     print(loss.item())
+    # return
 
     if training_args.fp16_opt_level == "O2":
         trainer.disable_autocast_context_manager()
