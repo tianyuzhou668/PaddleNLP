@@ -336,7 +336,7 @@ class LlamaAttention(nn.Layer):
 
         past_key_value = (key_states, value_states) if use_cache else None
 
-        attn_weights = paddle.matmul(query_states, key_states.transpose([0, 1, 3, 2])) / math.sqrt(self.head_dim)
+        attn_weights = paddle.matmul(query_states / math.sqrt(self.head_dim), key_states.transpose([0, 1, 3, 2]))
 
         if attn_weights.shape != [bsz, self.num_heads, q_len, kv_seq_len]:
             raise ValueError(

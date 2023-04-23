@@ -651,11 +651,6 @@ class Trainer:
                 # Skip past any already trained steps if resuming training
                 # for paddlenlp.utils.batch_sampler.DistributedBatchSampler
                 # We use consumed_samples to reset the status
-
-                # for _ in range(10):
-                #     self.training_step(model, None)
-                # raise ValueError()
-
                 if isinstance(train_dataloader, paddle.io.DataLoader) and isinstance(
                     train_dataloader.batch_sampler, NlpDistributedBatchSampler
                 ):
@@ -1454,30 +1449,7 @@ class Trainer:
         Return:
             `paddle.Tensor`: The tensor with training loss on this batch.
         """
-        # if inputs is not None:
-        #     print("\n\n")
-        #     for k,v in inputs.items():
-        #         print("=========inputs==:", k, v.shape, v.dtype)
 
-        #     inputs = [inputs.pop("input_ids"), inputs.pop("labels")]
-        # else:
-        #     # seq_len = 1166
-        #     bs = self.args.per_device_train_batch_size * self.args.gradient_accumulation_steps
-        #     input_ids = paddle.to_tensor([[x for x in range(100, 100 + seq_len)] ]  * bs, dtype="int64")
-        #     labels = paddle.to_tensor([[x for x in range(101, 101 + seq_len)] ] * bs, dtype="int64")
-        #     inputs = [input_ids, labels]
-
-        # loss = model.train_batch(inputs, self.optimizer)
-        # return loss.detach()
-
-        # input_ids = inputs.pop("input_ids")
-        # bs = input_ids.shape[0]
-        # seq_len = input_ids.shape[1]
-        # # seq_len = 256
-        # seq_len = 170
-        # input_ids = paddle.to_tensor([[x for x in range(100, 100 + seq_len)] ]  * bs, dtype="int64")
-        # labels = paddle.to_tensor([[x for x in range(101, 101 + seq_len)] ] * bs, dtype="int64")
-        # inputs = [input_ids, labels]
         inputs = [inputs.pop("input_ids"), inputs.pop("labels")]
 
         def _prepare_training(self, data):
@@ -1499,12 +1471,9 @@ class Trainer:
 
         model.train()
         inputs = _prepare_training(model, inputs)
-        # print(inputs)
 
         with self.autocast_smart_context_manager():
             loss = model.forward_backward_pipeline(inputs, self.scaler if self.do_grad_scaling else None)
-
-        # print("training_pipeline_step:", loss.item())
 
         return loss.detach()
 
@@ -2235,7 +2204,7 @@ class Trainer:
             key = "Training"
 
         logger.info("{:^40}".format("{} Configuration Arguments".format(key)))
-        logger.info("{:30}:{}".format("paddle commit id", paddle.version.commit))
+        logger.info("{:30}: {}".format("paddle commit id", paddle.version.commit))
 
         for a in dir(args):
             if a[:2] != "__":  # don't print double underscore methods
