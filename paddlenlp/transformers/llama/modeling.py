@@ -245,17 +245,17 @@ class LlamaRotaryEmbedding(nn.Layer):
     def __init__(self, dim, max_position_embeddings=2048, base=10000):
         super().__init__()
         dtype = paddle.get_default_dtype()
-        inv_freq = 1.0 / (base ** (paddle.cast(paddle.arange(0, dim, 2), dtype=dtype) / dim))
-        self.register_buffer("inv_freq", inv_freq)
+        inv_freq = 1.0 / (base ** (paddle.cast(paddle.arange(0, dim, 2), dtype="float32") / dim))
+        self.register_buffer("inv_freq", inv_freq.astype(dtype))
 
         # higher acc using float32
         t = paddle.arange(max_position_embeddings, dtype="float32")
-        freqs = paddle.einsum("i,j->ij", t, self.inv_freq.cast("float32"))
+        freqs = paddle.einsum("i,j->ij", t, inv_freq.cast("float32"))
         # Different from paper, but it uses a different permutation in order to obtain the same calculation
         emb = paddle.concat([freqs, freqs], axis=-1)
         # [bs, seqlen, nhead, head_dim]
-        self.cos_cached = (emb.cos()[None, :, None, :]).astype(dtype)
-        self.sin_cached = (emb.sin()[None, :, None, :]).astype(dtype)
+        self.cos_cached = (emb.cos()[None, :, None, :]) #.astype(dtype)
+        self.sin_cached = (emb.sin()[None, :, None, :]) #.astype(dtype)
 
     def forward(self, x, seq_len=None):
         return (
@@ -785,6 +785,8 @@ class LlamaPretrainingCriterion(paddle.nn.Layer):
             self.loss_func = paddle.nn.CrossEntropyLoss(reduction="none", ignore_index=self.ignore_index)
 
     def forward(self, prediction_scores, masked_lm_labels):
+        print("masked_lm_labels:", masked_lm_labels.shape, masked_lm_labels.abs().sum().item())
+        print("prediction_scores:", prediction_scores.shape, prediction_scores.abs().sum().item())
         if self.enable_parallel_cross_entropy:
             if prediction_scores.shape[-1] == self.config.vocab_size:
                 warnings.warn(

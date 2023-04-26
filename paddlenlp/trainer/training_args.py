@@ -723,7 +723,7 @@ class TrainingArguments:
                     "pp_degree": pipeline_parallel_degree,
                     "sharding_degree": sharding_parallel_degree,
                     "pp_configs": {
-                        "delay_scale_loss": True,
+                        "delay_scale_loss": False,
                     },
                 }
 

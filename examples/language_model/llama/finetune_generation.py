@@ -71,7 +71,10 @@ class ModelArgument:
 def main():
     parser = PdArgumentParser((ModelArgument, DataArgument, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    data_args.always_pad_to_max_length = False
+    # data_args.always_pad_to_max_length = False
+    data_args.always_pad_to_max_length = True
+    data_args.src_length = 400
+    data_args.tgt_length = 50
     # data_args.always_pad_to_max_length = training_args.pipeline_parallel_degree > 1
 
     training_args.print_config(model_args, "Model")
