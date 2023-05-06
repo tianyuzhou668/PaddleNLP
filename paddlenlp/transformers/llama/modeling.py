@@ -789,8 +789,14 @@ class LlamaPretrainingCriterion(paddle.nn.Layer):
                 warnings.warn(
                     f"enable_parallel_cross_entropy, the vocab_size should be splited: {prediction_scores.shape[-1]}, {self.config.vocab_size}"
                 )
+                raise ValueError()
                 self.loss_func = paddle.nn.CrossEntropyLoss(reduction="none", ignore_index=self.ignore_index)
+        else:
+            if prediction_scores.shape[-1] != self.config.vocab_size:
+                raise ValueError()
 
+        print("debug prediction_scores: ", prediction_scores.shape, prediction_scores.abs().sum().item())
+        print("debug masked_lm_labels: ", masked_lm_labels.shape, masked_lm_labels.abs().sum().item())
         if self.lm_shift_labels:
             # Shift so that tokens < n predict n
             prediction_scores = prediction_scores[..., :-1, :]

@@ -33,8 +33,9 @@ class TestLlama(unittest.TestCase):
             assert world_size % pp_degree == 0
             tp_degree = world_size // pp_degree
 
-        pp_degree = -1
-        if pp_degree == -1:
+        # pp_degree = -1
+        # if pp_degree == -1:
+        if world_size == 2:
             tp_degree = world_size
             pp_degree = 1
 
@@ -56,14 +57,20 @@ class TestLlama(unittest.TestCase):
         model_name_or_path = "./llama-7b-2l"
         # model_name_or_path = "facebook/tiny-random-llama"
         # hidden_size = 4096
+        num_attention_heads = 32
+        lm_shift_labels = False
+        # lm_shift_labels = True #  MP + num_attention_heads=32 选择了不同kernel, 有误差
+        tensor_parallel_output = True
+        use_flash_attention = False
+
         model = model_class.from_pretrained(
             model_name_or_path,
-            num_attention_heads=32,
+            num_attention_heads=num_attention_heads,
             tensor_parallel_degree=tp_degree,
             tensor_parallel_rank=hcg.get_model_parallel_rank(),
-            lm_shift_labels=True,
-            tensor_parallel_output=False,
-            # use_flash_attention=True,
+            lm_shift_labels=lm_shift_labels,
+            tensor_parallel_output=tensor_parallel_output,
+            use_flash_attention=use_flash_attention,
         )
 
         model.eval()
@@ -73,16 +80,24 @@ class TestLlama(unittest.TestCase):
         #     if k == "lm_head.weight":
         #         print(v)
 
-        # input_ids = paddle.to_tensor([[x for x in range(100, 110)]], dtype="int64")
-        # labels = paddle.to_tensor([[x for x in range(101, 111)]], dtype="int64")
+        # input_ids = paddle.to_tensor([[x for x in range(0, 810)]] * 4, dtype="int64")
+        # labels = paddle.to_tensor([[x for x in range(1, 811)]] * 4, dtype="int64")
         attention_mask = None
         input_ids = paddle.load("/ssd2/zhonghui03/Datasets/PaddleNLP/examples/language_model/llama/input_ids")
         labels = paddle.load("/ssd2/zhonghui03/Datasets/PaddleNLP/examples/language_model/llama/labels")
-        attention_mask = paddle.load(
-            "/ssd2/zhonghui03/Datasets/PaddleNLP/examples/language_model/llama/attention_mask"
-        )
+        # attention_mask = paddle.load(
+        #     "/ssd2/zhonghui03/Datasets/PaddleNLP/examples/language_model/llama/attention_mask"
+        # )
+        # print(input_ids)
+        # print(labels)
+        # labels[labels < 0] = 200
+        # print(labels)
+        input_ids[input_ids == 0] = 4553
+        input_ids[input_ids == 2] = 4553
+        labels = input_ids
+        # print(input_ids)
 
-        # labels[labels < 0] = 1
+        print(labels)
 
         if pp_degree > 1:
             pp_model = PipelineParallel(layers=model, hcg=hcg, strategy=strategy)
@@ -95,14 +110,15 @@ class TestLlama(unittest.TestCase):
             ret = ret[0]
 
         # np.testing.assert_allclose(ret.item(), 10.49988270, atol=1e-7)
-        print(f"ret mp{tp_degree} pp", ret.item())
+        print(f"ret tp{tp_degree} pp{pp_degree}", ret.item())
         ret_mp_pp = ret.item()
 
         single_model = LlamaForCausalLM.from_pretrained(
             model_name_or_path,
-            lm_shift_labels=True,
-            num_attention_heads=32,
-            tensor_parallel_output=False,
+            lm_shift_labels=lm_shift_labels,
+            num_attention_heads=num_attention_heads,
+            tensor_parallel_output=tensor_parallel_output,
+            use_flash_attention=use_flash_attention,
         )
         single_model.eval()
         ret = single_model(input_ids=input_ids, labels=labels, attention_mask=attention_mask)

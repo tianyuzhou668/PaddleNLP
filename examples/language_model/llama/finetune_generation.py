@@ -71,7 +71,9 @@ class ModelArgument:
 def main():
     parser = PdArgumentParser((ModelArgument, DataArgument, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
-    data_args.always_pad_to_max_length = False
+    data_args.always_pad_to_max_length = True
+    data_args.src_length = 400
+    data_args.tgt_length = 50
     # data_args.always_pad_to_max_length = training_args.pipeline_parallel_degree > 1
 
     training_args.print_config(model_args, "Model")
@@ -122,7 +124,7 @@ def main():
     model = model_class.from_pretrained(
         model_args.model_name_or_path,
         load_state_as_np=True,
-        low_cpu_mem_usage=True,
+        # low_cpu_mem_usage=True,
         dtype=dtype,  # todo enable set dtype to avoid additional mem usage
         tensor_parallel_degree=training_args.tensor_parallel_degree,
         tensor_parallel_rank=training_args.tensor_parallel_rank,
