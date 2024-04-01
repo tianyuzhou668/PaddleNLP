@@ -46,15 +46,77 @@ class TestExportEvalModel(TestMultipleGpus):
         scripts = "tests/run_model.py"
         self.run_4gpu(scripts, **config)
 
+    def test_pptp_to_tp_sharding_ema(self):
+        config = {
+            "output_dir": "./tmp",
+            "model_name_or_path": "__internal_testing__/tiny-random-llama",
+            "sharding": "stage1",
+            "sharding_parallel_degree": 2,
+            "tensor_parallel_degree": 2,
+            "pipeline_parallel_degree": 2,
+            "fp16": "true",
+            "fp16_opt_level": "O2",
+            "use_ema": "true",
+        }
+        scripts = "tests/run_model.py"
+        self.run_8gpu(scripts, **config)
+
+    def test_pptp_to_tp_sharding(self):
+        config = {
+            "output_dir": "./tmp",
+            "model_name_or_path": "__internal_testing__/tiny-random-llama",
+            "sharding": "stage1",
+            "sharding_parallel_degree": 2,
+            "tensor_parallel_degree": 2,
+            "pipeline_parallel_degree": 2,
+            "fp16": "true",
+            "fp16_opt_level": "O2",
+            "use_ema": "false",
+        }
+        scripts = "tests/run_model.py"
+        self.run_8gpu(scripts, **config)
+
     def test_tp_to_single(self):
         config = {
             "output_dir": "./tmp",
             "model_name_or_path": "__internal_testing__/tiny-random-llama",
             "tensor_parallel_degree": 2,
             "pipeline_parallel_degree": 1,
+            "fp16": "true",
+            "fp16_opt_level": "O2",
         }
         scripts = "tests/run_model.py"
         self.run_2gpu(scripts, **config)
+
+    def test_tp_to_single_sharding_ema(self):
+        config = {
+            "output_dir": "./tmp",
+            "model_name_or_path": "__internal_testing__/tiny-random-llama",
+            "sharding": "stage1",
+            "sharding_parallel_degree": 2,
+            "tensor_parallel_degree": 2,
+            "pipeline_parallel_degree": 1,
+            "fp16": "true",
+            "fp16_opt_level": "O2",
+            "use_ema": "true",
+        }
+        scripts = "tests/run_model.py"
+        self.run_4gpu(scripts, **config)
+
+    def test_tp_to_single_sharding(self):
+        config = {
+            "output_dir": "./tmp",
+            "model_name_or_path": "__internal_testing__/tiny-random-llama",
+            "sharding": "stage1",
+            "sharding_parallel_degree": 2,
+            "tensor_parallel_degree": 2,
+            "pipeline_parallel_degree": 1,
+            "fp16": "true",
+            "fp16_opt_level": "O2",
+            "use_ema": "false",
+        }
+        scripts = "tests/run_model.py"
+        self.run_4gpu(scripts, **config)
 
     def test_group_rank_guard(self):
         config = {

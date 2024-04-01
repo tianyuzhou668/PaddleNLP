@@ -58,7 +58,10 @@ from paddlenlp.trainer.trainer import (
     logger,
     speed_metrics,
 )
-from paddlenlp.trainer.utils.helper import nested_broadcast_tensor_with_empty
+from paddlenlp.trainer.utils.helper import (
+    nested_broadcast_tensor_with_empty,
+    nested_reduce_tensor,
+)
 from paddlenlp.utils.distributed import distributed_gather
 
 global_dev_id = 0 if paddle.get_device() == "cpu" else int(paddle.get_device().split(":")[1])
@@ -249,6 +252,13 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
         return None
 
     with_offload = kwargs.pop("with_offload", False)
+    master_weights = kwargs.pop("ema_weights", None)
+
+    if master_weights is not None:
+        # static2struct_name_mappings = {v.name:k for k, v in train_model.state_dict.items()}
+        # master_weights = trans_struct_name(master_weights)
+        with_offload = False
+
     train_tp_size = max(train_model.config.tensor_parallel_degree, 1)
     eval_tp_size = max(eval_model.config.tensor_parallel_degree, 1)
     eval_tp_rank = max(eval_model.config.tensor_parallel_rank, 0)
@@ -264,7 +274,13 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
     train_state_dict = train_model.state_dict()
     eval_state_dict = eval_model.state_dict()
 
-    if dp_group.rank <= 0 and sd_group.rank <= 0:
+    if master_weights is None:
+        is_need = dp_group.rank <= 0 and sd_group.rank <= 0
+    else:
+        train_state_dict = master_weights
+        is_need = dp_group.rank <= 0
+
+    if is_need:
         train_pp_size = pp_group.nranks
         if eval_tp_size > 1 and train_tp_size != eval_tp_size:
             raise ValueError("Only support for the same tensor_parallel_degree for train and eval model for now.")
@@ -272,10 +288,48 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
         # 单卡情况
         # tp->single
         # tp+pp -> single
+
+        def create_single_send_recv_table(train_keys, eval_keys, train_keys_meta):
+            recv_table = []
+            send_table = []
+            if sd_group.rank <= 0:
+                for key in eval_keys:
+                    recv_table.append((key, global_rank))
+
+            for key in train_keys:
+                send_table.append((key, global_rank, train_keys_meta[key]))
+
+            all_recv, all_send = [], []
+            if sd_group.nranks > 1 and master_weights is not None:
+                paddle.distributed.all_gather_object(all_recv, [recv_table], group=sd_group)
+            else:
+                all_recv = recv_table
+
+            if sd_group.nranks > 1 and master_weights is not None:
+                paddle.distributed.all_gather_object(all_send, [send_table], group=sd_group)
+            else:
+                all_send = send_table
+
+            all_recv = flatten_list(all_recv)
+            all_send = flatten_list(all_send)
+
+            send_dict = {}
+            meta_dict = {}
+            for k, v, meta in all_send:
+                send_dict[k] = v
+                meta_dict[k] = meta
+
+            table = []
+            for k, v in all_recv:
+                # key, send, recv, key_meta
+                table.append([k, send_dict.pop(k), v, meta_dict.pop(k)])
+            assert len(send_dict) == 0, f"Some key can't be recv {send_dict.keys()}"
+            return table
+
         if eval_tp_size == 1:
             if train_pp_size == 1 and train_tp_size > 1:
                 # tp ->single
-                logger.error("using tp to single eval model.")
+                logger.info("using tp to single eval model.")
                 # state = train_model.merge_tensor_parallel()
                 tp_actions = train_model.get_tensor_parallel_convert_actions(
                     train_model.config,
@@ -284,23 +338,40 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
                     ignore_error=False,
                 )
 
+                train_keys_meta = nested_reduce_tensor(train_state_dict)
+                table = create_single_send_recv_table(
+                    train_state_dict.keys(), eval_state_dict.keys(), train_keys_meta=train_keys_meta
+                )
                 is_dst = global_rank == 0
-                for key in eval_state_dict.keys():
-                    tensor = train_state_dict[key]
-                    if key in tp_actions:
-                        ret = distributed_gather(tensor, dst=0, group=tp_group, offload=False)
-                        action = tp_actions.pop(key)
-                        tensor = action(ret) if is_dst else None
+                for key, src_rank, dst_rank, key_meta in table:
+                    # Init tensor for model is cleaned
+                    tensor = None
+                    if src_rank == dst_rank and global_rank == src_rank:
+                        tensor = train_state_dict[key]
                     else:
-                        tensor = tensor._copy_to(paddle.CPUPlace(), False) if is_dst else None
+                        if global_rank == src_rank:
+                            tensor = train_state_dict[key]
+                            dist.stream.send(tensor, dst=dst_rank)
 
-                    if tensor is not None:
-                        eval_state_dict[key].set_value(tensor)
+                        if global_rank == dst_rank:
+                            tensor = paddle.empty(key_meta.shape, dtype=key_meta.dtype)
+                            dist.stream.recv(tensor, src=src_rank)
 
-                    if not eval_state_dict[key]._is_initialized():
-                        v = eval_state_dict[key]
-                        t = paddle._C_ops.full_like(v, 0, v.dtype, paddle.CUDAPlace(global_dev_id))
-                        v.get_tensor()._share_data_with(t.get_tensor())
+                    if sd_group.rank <= 0:
+                        if key in tp_actions:
+                            ret = distributed_gather(tensor, dst=0, group=tp_group, offload=False)
+                            action = tp_actions.pop(key)
+                            tensor = action(ret) if is_dst else None
+                        else:
+                            tensor = tensor
+
+                        if tensor is not None:
+                            eval_state_dict[key].set_value(tensor.astype(eval_state_dict[key].dtype))
+
+                        if not eval_state_dict[key]._is_initialized():
+                            v = eval_state_dict[key]
+                            t = paddle._C_ops.full_like(v, 0, v.dtype, paddle.CUDAPlace(global_dev_id))
+                            v.get_tensor()._share_data_with(t.get_tensor())
 
                     if with_offload:
                         offload_tensor_to_cpu(train_state_dict[key])
@@ -309,30 +380,42 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
                 # tp+pp -> single
                 raise ValueError("Not support yet.")
 
-        def create_send_recv_table(train_keys, eval_keys):
+        def create_send_recv_table(train_keys, eval_keys, train_keys_meta):
             recv_table = []
             send_table = []
-            if pp_group.rank == 0:
+            if pp_group.rank == 0 and sd_group.rank <= 0:
                 for key in eval_keys:
                     recv_table.append((key, global_rank))
 
             for key in train_keys:
-                send_table.append((key, global_rank))
+                send_table.append((key, global_rank, train_keys_meta[key]))
 
             all_recv, all_send = [], []
             paddle.distributed.all_gather_object(all_recv, [recv_table], group=pp_group)
+            if sd_group.nranks > 1 and master_weights is not None:
+                new_all_recv = []
+                paddle.distributed.all_gather_object(new_all_recv, all_recv, group=sd_group)
+                all_recv = new_all_recv
             paddle.distributed.all_gather_object(all_send, [send_table], group=pp_group)
+            if sd_group.nranks > 1 and master_weights is not None:
+                new_all_send = []
+                paddle.distributed.all_gather_object(new_all_send, all_send, group=sd_group)
+                all_send = new_all_send
+
             all_recv = flatten_list(all_recv)
             all_send = flatten_list(all_send)
 
             send_dict = {}
-            for k, v in all_send:
+            meta_dict = {}
+            for k, v, meta in all_send:
                 send_dict[k] = v
+                meta_dict[k] = meta
 
             table = []
             for k, v in all_recv:
-                # key, send, recv
-                table.append([k, send_dict.pop(k), v])
+                # key, send, recv, key_meta
+                table.append([k, send_dict.pop(k), v, meta_dict.pop(k)])
+
             assert len(send_dict) == 0, f"Some key can't be recv {send_dict.keys()}"
             return table
 
@@ -345,9 +428,9 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
         # tp+pp->tp
         self.timers and self.timers("export-merge-pp").start()
         if eval_tp_size > 1 and train_pp_size > 1:
-            table = create_send_recv_table(train_state_dict.keys(), eval_state_dict.keys())
-
-            for key, src_rank, dst_rank in table:
+            train_keys_meta = nested_reduce_tensor(train_state_dict)
+            table = create_send_recv_table(train_state_dict.keys(), eval_state_dict.keys(), train_keys_meta)
+            for key, src_rank, dst_rank, key_meta in table:
                 # Init tensor for model is cleaned
                 if not eval_state_dict[key]._is_initialized():
                     v = eval_state_dict[key]
@@ -355,13 +438,15 @@ def export_evaluate_model(self: Trainer, train_model, eval_model, **kwargs):
                     v.get_tensor()._share_data_with(t.get_tensor())
 
                 if src_rank == dst_rank and global_rank == src_rank:
-                    eval_state_dict[key].copy_(train_state_dict[key], True)
+                    eval_state_dict[key].copy_(train_state_dict[key].astype(eval_state_dict[key].dtype), True)
                 else:
                     if global_rank == src_rank:
                         dist.stream.send(train_state_dict[key], dst=dst_rank)
 
                     if global_rank == dst_rank:
-                        dist.stream.recv(eval_state_dict[key], src=src_rank)
+                        tensor = paddle.empty(key_meta.shape, dtype=key_meta.dtype)
+                        dist.stream.recv(tensor, src=src_rank)
+                        eval_state_dict[key].copy_(tensor.astype(eval_state_dict[key].dtype), True)
 
                 # Offload train model if need
                 if global_rank == src_rank and with_offload:

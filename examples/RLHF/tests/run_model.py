@@ -33,6 +33,7 @@ class ModelArgument:
     model_name_or_path: str = field(
         default=None, metadata={"help": "Build-in pretrained model name or the path to local model."}
     )
+    use_ema: bool = field(default=False, metadata={"help": "test export ema weigts."})
     test_mode: str = field(default="export", metadata={"help": "export data_split or rank_guard."})
 
 
@@ -80,6 +81,7 @@ def main():
         config=model_config,
     )
 
+    use_ema = model_args.use_ema
     if True:  # test export_evaluate_model
         # 随机初始化
         config = copy.deepcopy(model_config)
@@ -95,15 +97,35 @@ def main():
             model=actor_model,
             args=training_args,
         )
-        trainer.export_evaluate_model(actor_model, actor_eval_model)
+        if use_ema:
+            opt = trainer.create_optimizer(0.0)
+            wraped_model = trainer._wrap_model(trainer.model)
+            text = paddle.to_tensor([[0, 1, 2, 3, 4, 5]], dtype="int64")
+            if training_args.pipeline_parallel_degree > 1:
+                wraped_model.micro_batch_size, wraped_model.accumulate_steps = 1, 1
+                wraped_model.forward_backward_pipeline([text[:, :-1], text[:, 1:]])
+                opt.step()
+            else:
+                ret = actor_model(input_ids=text[:, :-1], labels=text[:, 1:], return_dict=True)
+                ret.loss.backward()
+                opt.step()
+            ema_weights = opt.state_dict()["master_weights"]
+            mapping = {v.name: k for k, v in actor_model.state_dict().items()}
+            ema_weights = {mapping[k]: v for k, v in ema_weights.items()}
+            trainer.export_evaluate_model(actor_model, actor_eval_model, ema_weights=ema_weights)
+        else:
+            trainer.export_evaluate_model(actor_model, actor_eval_model)
 
         gp_state = actor_gt_model.state_dict()
         export_state = actor_eval_model.state_dict()
 
         for k, v in gp_state.items():
-            assert (
-                v._md5sum() == export_state[k]._md5sum()
-            ), f"{k} groud_truth: {v.shape}, export: {export_state[k].shape}"
+            if not use_ema:
+                assert (
+                    v._md5sum() == export_state[k]._md5sum()
+                ), f"{k} groud_truth: {v.shape} {v}, export: {export_state[k].shape} {export_state[k]}"
+            else:
+                numpy.testing.assert_almost_equal(v.cpu().numpy(), export_state[k].cpu().numpy())
 
         split_group = tp_group
         if training_args.pipeline_parallel_degree > 1:
