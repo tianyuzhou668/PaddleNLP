@@ -145,6 +145,7 @@ class LlamaConfig(PretrainedConfig):
         num_hidden_layers=32,
         num_attention_heads=32,
         num_key_value_heads=None,
+        num_query_heads=None,
         initializer_range=0.02,
         rms_norm_eps=1e-6,
         use_cache=True,
@@ -184,7 +185,10 @@ class LlamaConfig(PretrainedConfig):
 
         if num_key_value_heads is None:
             num_key_value_heads = num_attention_heads
+        if num_query_heads is None:
+            num_query_heads = num_attention_heads
         self.num_key_value_heads = num_key_value_heads
+        self.num_query_heads = num_query_heads
 
         self.initializer_range = initializer_range
         self.rms_norm_eps = rms_norm_eps

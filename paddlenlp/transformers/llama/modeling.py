@@ -625,7 +625,7 @@ class LlamaAttention(nn.Layer):
 
         self.config = config
         self.hidden_size = config.hidden_size
-        self.num_heads = config.num_attention_heads
+        self.num_heads = config.num_query_heads
 
         self.head_dim = self.hidden_size // config.num_attention_heads
 
@@ -696,7 +696,7 @@ class LlamaAttention(nn.Layer):
             else:
                 self.q_proj = ColumnParallelLinear(
                     self.hidden_size,
-                    self.hidden_size,
+                    self.config.num_query_heads * self.head_dim,
                     has_bias=False,
                     gather_output=False,
                 )
@@ -735,7 +735,7 @@ class LlamaAttention(nn.Layer):
             else:
                 self.q_proj = nn.Linear(
                     self.hidden_size,
-                    self.hidden_size,
+                    self.config.num_query_heads * self.head_dim,
                     bias_attr=False,
                 )
                 self.k_proj = nn.Linear(
@@ -751,14 +751,14 @@ class LlamaAttention(nn.Layer):
 
         if config.tensor_parallel_degree > 1:
             self.o_proj = RowParallelLinear(
-                self.hidden_size,
+                self.config.num_query_heads * self.head_dim,
                 self.hidden_size,
                 has_bias=False,
                 input_is_parallel=True,
             )
         else:
             self.o_proj = nn.Linear(
-                self.hidden_size,
+                self.config.num_query_heads * self.head_dim,
                 self.hidden_size,
                 bias_attr=False,
             )
