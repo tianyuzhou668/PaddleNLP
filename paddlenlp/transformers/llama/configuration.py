@@ -138,6 +138,7 @@ class LlamaConfig(PretrainedConfig):
     def __init__(
         self,
         vocab_size=32000,
+        vocab_hidden_size=None,
         hidden_size=4096,
         intermediate_size=11008,
         max_position_embeddings=2048,
@@ -187,8 +188,11 @@ class LlamaConfig(PretrainedConfig):
             num_key_value_heads = num_attention_heads
         if num_query_heads is None:
             num_query_heads = num_attention_heads
+        if vocab_hidden_size is None:
+            vocab_hidden_size = hidden_size
         self.num_key_value_heads = num_key_value_heads
         self.num_query_heads = num_query_heads
+        self.vocab_hidden_size = vocab_hidden_size
 
         self.initializer_range = initializer_range
         self.rms_norm_eps = rms_norm_eps

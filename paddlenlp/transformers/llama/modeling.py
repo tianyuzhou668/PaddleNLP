@@ -1340,6 +1340,7 @@ class LlamaModel(LlamaPretrainedModel):
         super().__init__(config)
         self.vocab_size = config.vocab_size
         self.hidden_size = config.hidden_size
+        self.vocab_hidden_size = config.vocab_hidden_size
         self.sequence_parallel = config.sequence_parallel
         self.recompute_granularity = config.recompute_granularity
         self.no_recompute_layers = config.no_recompute_layers if config.no_recompute_layers is not None else []
@@ -1350,14 +1351,17 @@ class LlamaModel(LlamaPretrainedModel):
         if config.tensor_parallel_degree > 1 and config.vocab_size % config.tensor_parallel_degree == 0:
             self.embed_tokens = mpu.VocabParallelEmbedding(
                 self.vocab_size,
-                self.hidden_size,
+                self.vocab_hidden_size,
                 weight_attr=paddle.ParamAttr(initializer=nn.initializer.XavierNormal()),
             )
         else:
             self.embed_tokens = nn.Embedding(
                 self.vocab_size,
-                self.hidden_size,
+                self.vocab_hidden_size,
             )
+        self.emb_linear = None
+        if self.hidden_size != self.vocab_hidden_size:
+            self.emb_linear = nn.Linear(self.vocab_hidden_size, self.hidden_size, bias_attr=False)
 
         self.layers = nn.LayerList(
             [LlamaDecoderLayer(config, i not in self.no_recompute_layers) for i in range(config.num_hidden_layers)]
@@ -1483,6 +1487,8 @@ class LlamaModel(LlamaPretrainedModel):
             seq_length_with_past += cache_length
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
+            if self.emb_linear is not None:
+                inputs_embeds = self.emb_linear(inputs_embeds)
 
         if self.sequence_parallel:
             # [bs, seq_len, num_head * head_dim] -> [bs * seq_len, num_head * head_dim]
@@ -1671,9 +1677,12 @@ class LlamaLMHead(nn.Layer):
             vocab_size = config.vocab_size
 
         self.weight = self.create_parameter(
-            shape=[config.hidden_size, vocab_size],
+            shape=[config.vocab_hidden_size, vocab_size],
             dtype=paddle.get_default_dtype(),
         )
+        self.emb_linear = None
+        if config.hidden_size != config.vocab_hidden_size:
+            self.emb_linear = nn.Linear(config.hidden_size, config.vocab_hidden_size, bias_attr=False)
         # Must set distributed attr for Tensor Parallel !
         self.weight.is_distributed = True if (vocab_size != config.vocab_size) else False
         if self.weight.is_distributed:
@@ -1690,7 +1699,8 @@ class LlamaLMHead(nn.Layer):
 
         if tensor_parallel_output is None:
             tensor_parallel_output = self.config.tensor_parallel_output
-
+        if self.emb_linear is not None:
+            hidden_states = self.emb_linear(hidden_states)
         logits = parallel_matmul(hidden_states, self.weight, tensor_parallel_output=tensor_parallel_output)
         return logits
 
