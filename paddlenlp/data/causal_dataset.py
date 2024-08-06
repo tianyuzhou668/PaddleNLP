@@ -371,31 +371,38 @@ class GPTDataset(paddle.io.Dataset):
             # Otherwise, get the rest of the initial document.
             doc_ids.append(self.doc_idx[doc_index_f])
             sample, mask = self.indexed_dataset.get(self.doc_idx[doc_index_f], offset=offset_f)
-            append_mask = True
-            if mask is None:
-                append_mask = False
+            # append_mask = True
+            # if mask is None:
+            #     append_mask = False
 
             sample_list = [sample]
-            mask_list = []
-            mask_list = [mask]
+            position_ids = []
+            position_ids.append([(28 * 28 - j) for j in range(len(sample) - 1, -1, -1)])
+            # mask_list = []
+            # mask_list = [mask]
             # Loop over all in between documents and add the entire document.
+
             for i in range(doc_index_f + 1, doc_index_l):
                 doc_ids.append(self.doc_idx[i])
                 sample, mask = self.indexed_dataset.get(self.doc_idx[i])
                 sample_list.append(sample)
-                if append_mask:
-                    mask_list.append(mask)
+                position_ids.append([x for x in range(len(sample))])
+                # if append_mask:
+                # mask_list.append(mask)
 
             # And finally add the relevant portion of last document.
             doc_ids.append(self.doc_idx[doc_index_l])
             sample, mask = self.indexed_dataset.get(self.doc_idx[doc_index_l], length=offset_l + 1)
             sample_list.append(sample)
-            if append_mask:
-                mask_list.append(mask)
+            position_ids.append([x for x in range(len(sample) - 1)])
+            # if append_mask:
+            #     mask_list.append(mask)
             sample = np.concatenate(sample_list)
-            if append_mask:
-                mask = np.concatenate(mask_list)
+            position_ids = np.concatenate(position_ids)
+            # if append_mask:
+            #     mask = np.concatenate(mask_list)
         # print(sample)
+        mask = None
         if self.return_doc_ids:  # for retro preprocessing
             if mask is None:
                 return {"text": np.array(sample, dtype=np.int64), "doc_ids": np.array(doc_ids, dtype=np.int64)}
@@ -407,7 +414,10 @@ class GPTDataset(paddle.io.Dataset):
                 }
         else:
             if mask is None:
-                return {"text": np.array(sample, dtype=np.int64)}
+                return {
+                    "text": np.array(sample, dtype=np.int64),
+                    "position_ids": np.array(position_ids, dtype=np.int64),
+                }
             else:
                 return {"text": np.array(sample, dtype=np.int64), "mask": np.array(mask, dtype=np.int64)}
 

@@ -212,6 +212,8 @@ class BasePredictor:
             tokenizer = AutoTokenizer.from_pretrained(config.model_name_or_path, padding_side="left")
 
         self.tokenizer = tokenizer
+        self.tokenizer.bos_token_id = 300
+        self.tokenizer.eos_token_id = 301
 
         self.return_tensors = "pd"
         self.tensor_parallel_rank, self.tensor_parallel_degree = init_dist_env()
@@ -1238,7 +1240,9 @@ class StaticBlockInferencePredictor(BlockInferencePredictorMixin, BasePredictor)
     def _preprocess(self, source):
         BlockInferencePredictorMixin._preprocess(self, source)
         for i, text in enumerate(source):
-            tokens = self.tokenizer(text, return_tensors="np", padding=False, truncation=True, max_length=(self.config.src_length))
+            tokens = self.tokenizer(
+                text, return_tensors="np", padding=False, truncation=True, max_length=(self.config.src_length)
+            )
             input_ids = tokens["input_ids"][0]
             length = len(input_ids)
             need_block_nums = (
@@ -1651,6 +1655,7 @@ def predict():
 
     else:
         source_texts = ["解释一下“温故而知新”", "你好，请问你是谁?"]
+        source_texts = ["", ""]  # ["解释一下“温故而知新”", "你好，请问你是谁?"]
         target_texts = ["", ""]
 
     batch_source_texts = batchfy_text(source_texts, predictor_args.batch_size)

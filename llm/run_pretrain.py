@@ -238,18 +238,21 @@ def create_pretrained_dataset(
         logger.info(f"Sample data for {mode} mode.")
         # input_ids, loss_mask, attention_mask, position_ids, labels = data
         input_ids = data["text"]
+        print(data["position_ids"])
         logger.info(tokenizer._decode(list(input_ids)))
 
     from paddlenlp.data import Stack
 
     def _collate_data(data, stack_fn=Stack()):
         tokens_ = stack_fn([x["text"] for x in data])
+        pos = stack_fn([x["position_ids"] for x in data])
 
         labels = copy.deepcopy(tokens_)[:, 1:]
         tokens = tokens_[:, :-1]
 
         return {
             "input_ids": tokens,
+            "position_ids": pos,
             "labels": labels,
         }
 
@@ -423,6 +426,11 @@ def main():
     if not model_args.continue_training:
         config.vocab_size = max(config.vocab_size, ((tokenizer.vocab_size - 1) // 128 + 1) * 128)
         logger.info(f"Reset vocab size to {config.vocab_size} for batter amp peformance.")
+
+    config.ignore_index = 0
+    config.bos_token_id = 300
+    config.eos_token_id = 301
+    config.enable_pos_ids = True
 
     config.num_hidden_layers = (
         model_args.num_hidden_layers if model_args.num_hidden_layers is not None else config.num_hidden_layers

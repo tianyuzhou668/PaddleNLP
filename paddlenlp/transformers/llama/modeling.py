@@ -1405,6 +1405,14 @@ class LlamaModel(LlamaPretrainedModel):
                 self.hidden_size,
             )
 
+        if hasattr(config, "enable_pos_ids"):
+            self.pos_tokens = nn.Embedding(
+                1024,
+                self.hidden_size,
+            )
+        else:
+            raise ValueError(config)
+
         self.layers = nn.LayerList(
             [LlamaDecoderLayer(config, i not in self.no_recompute_layers) for i in range(config.num_hidden_layers)]
         )
@@ -1537,6 +1545,9 @@ class LlamaModel(LlamaPretrainedModel):
             seq_length_with_past += cache_length
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
+            if hasattr(self, "pos_tokens"):
+                inputs_embeds += self.pos_tokens(position_ids)
+                position_ids = None
 
         if self.sequence_parallel:
             # [bs, seq_len, num_head * head_dim] -> [bs * seq_len, num_head * head_dim]
