@@ -196,6 +196,7 @@ def create_pretrained_dataset(
     data_file,
     tokenizer,
     need_data=True,
+    multi_token_nums=1,
 ):
 
     check_data_split(data_args.split, training_args.do_train, training_args.do_eval, training_args.do_predict)
@@ -227,6 +228,7 @@ def create_pretrained_dataset(
         splits_string=data_args.split,
         train_val_test_num_samples=train_val_test_num_samples,
         seq_length=data_args.max_seq_length,
+        multi_token_nums=multi_token_nums,
         seed=training_args.seed,
         skip_warmup=data_args.skip_warmup,
         share_folder=data_args.share_folder,
@@ -244,9 +246,8 @@ def create_pretrained_dataset(
 
     def _collate_data(data, stack_fn=Stack()):
         tokens_ = stack_fn([x["text"] for x in data])
-
-        labels = copy.deepcopy(tokens_)[:, 1:]
-        tokens = tokens_[:, :-1]
+        labels = copy.deepcopy(tokens_)[:, multi_token_nums:]
+        tokens = tokens_[:, :-multi_token_nums]
 
         return {
             "input_ids": tokens,
@@ -542,6 +543,7 @@ def main():
         data_file,
         tokenizer,
         need_data=training_args.should_load_dataset,
+        multi_token_nums=config.multi_token,
     )
 
     total_effective_tokens = (

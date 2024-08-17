@@ -1594,9 +1594,9 @@ class LlamaModel(LlamaPretrainedModel):
             if self.config.multi_token > 1:
                 # [seq_len, hidden_size]
                 # [seq_len/M, hidden_size*M]
-                inputs_embeds = inputs_embeds.reshape(
-                    inputs_embeds.shape[0] // self.config.multi_token, inputs_embeds.shape[1] * self.config.multi_token
-                )
+                bs, seq_len, hs = inputs_embeds.shape
+                seq_length = seq_len // self.config.multi_token
+                inputs_embeds = inputs_embeds.reshape([bs, seq_length, hs * self.config.multi_token])
 
         if self.sequence_parallel:
             # [bs, seq_len, num_head * head_dim] -> [bs * seq_len, num_head * head_dim]

@@ -125,6 +125,7 @@ def build_train_valid_test_datasets(
     *,
     data_cache_path=None,
     need_data=True,
+    multi_token_nums=1,
 ):
     """Build train, valid, and test datasets."""
 
@@ -141,6 +142,7 @@ def build_train_valid_test_datasets(
             share_folder=share_folder,
             data_cache_path=data_cache_path,
             need_data=need_data,
+            multi_token_nums=multi_token_nums,
         )
 
     # Blending dataset.
@@ -168,6 +170,7 @@ def build_train_valid_test_datasets(
             share_folder=share_folder,
             data_cache_path=data_cache_path,
             need_data=need_data,
+            multi_token_nums=multi_token_nums,
         )
         if train_ds:
             train_datasets.append(train_ds)
@@ -212,6 +215,7 @@ def _build_train_valid_test_datasets(
     *,
     data_cache_path=None,
     need_data=True,
+    multi_token_nums=1,
 ):
     """Build train, valid, and test datasets."""
 
@@ -254,6 +258,7 @@ def _build_train_valid_test_datasets(
             share_folder,
             data_cache_path=data_cache_path,
             need_data=need_data,
+            multi_token_nums=multi_token_nums,
         )
         if need_data:
             return dataset if splits[index + 1] > splits[index] else None
@@ -295,11 +300,13 @@ class GPTDataset(paddle.io.Dataset):
         *,
         data_cache_path=None,
         need_data=True,
+        multi_token_nums=1,
     ):
 
         self.name = name
         self.indexed_dataset = indexed_dataset
         self.return_doc_ids = return_doc_ids
+        self.multi_token_nums = multi_token_nums
 
         # Build index mappings.
         if need_data and len(documents) > 0:
@@ -367,7 +374,7 @@ class GPTDataset(paddle.io.Dataset):
             doc_ids.append(self.doc_idx[doc_index_f])
 
             sample, mask = self.indexed_dataset.get(
-                self.doc_idx[doc_index_f], offset=offset_f, length=offset_l - offset_f + 1
+                self.doc_idx[doc_index_f], offset=offset_f, length=offset_l - offset_f + self.multi_token_nums
             )
         else:
             # Otherwise, get the rest of the initial document.
@@ -390,7 +397,7 @@ class GPTDataset(paddle.io.Dataset):
 
             # And finally add the relevant portion of last document.
             doc_ids.append(self.doc_idx[doc_index_l])
-            sample, mask = self.indexed_dataset.get(self.doc_idx[doc_index_l], length=offset_l + 1)
+            sample, mask = self.indexed_dataset.get(self.doc_idx[doc_index_l], length=offset_l + self.multi_token_nums)
             sample_list.append(sample)
             if append_mask:
                 mask_list.append(mask)
