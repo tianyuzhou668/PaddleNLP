@@ -1439,7 +1439,7 @@ class LlamaModel(LlamaPretrainedModel):
     def __init__(self, config: LlamaConfig):
         super().__init__(config)
         self.vocab_size = config.vocab_size
-        self.hidden_size = config.hidden_size
+        self.hidden_size = config.hidden_size // config.multi_token
         self.sequence_parallel = config.sequence_parallel
         self.recompute_granularity = config.recompute_granularity
         self.no_recompute_layers = config.no_recompute_layers if config.no_recompute_layers is not None else []
@@ -1591,6 +1591,12 @@ class LlamaModel(LlamaPretrainedModel):
             seq_length_with_past += cache_length
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
+            if self.config.multi_token > 1:
+                # [seq_len, hidden_size]
+                # [seq_len/M, hidden_size*M]
+                inputs_embeds = inputs_embeds.reshape(
+                    inputs_embeds.shape[0] // self.config.multi_token, inputs_embeds.shape[1] * self.config.multi_token
+                )
 
         if self.sequence_parallel:
             # [bs, seq_len, num_head * head_dim] -> [bs * seq_len, num_head * head_dim]
@@ -1814,15 +1820,16 @@ class LlamaLMHead(nn.Layer):
         else:
             vocab_size = config.vocab_size
 
+        self.hidden_size = self.config.hidden_size // self.config.multi_token
         if vocab_size != config.vocab_size:
             with get_rng_state_tracker().rng_state():
                 self.weight = self.create_parameter(
-                    shape=[config.hidden_size, vocab_size],
+                    shape=[self.hidden_size, vocab_size],
                     dtype=paddle.get_default_dtype(),
                 )
         else:
             self.weight = self.create_parameter(
-                shape=[config.hidden_size, vocab_size],
+                shape=[self.hidden_size, vocab_size],
                 dtype=paddle.get_default_dtype(),
             )
         # Must set distributed attr for Tensor Parallel !
@@ -1850,6 +1857,12 @@ class LlamaLMHead(nn.Layer):
                 assert seq_length % self.config.context_parallel_degree == 0
                 seq_length = seq_length // self.config.context_parallel_degree
             hidden_states = paddle.reshape_(hidden_states, [-1, seq_length, self.config.hidden_size])
+
+        if self.config.multi_token > 1:
+            bs, seq_len, h_size = hidden_states.shape
+            hidden_states = hidden_states.reshape(
+                [bs, seq_len * self.config.multi_token, h_size // self.config.multi_token]
+            )
 
         if tensor_parallel_output is None:
             tensor_parallel_output = self.config.tensor_parallel_output and self.config.tensor_parallel_degree > 1

@@ -137,6 +137,7 @@ class LlamaConfig(PretrainedConfig):
         seq_length=2048,
         num_hidden_layers=32,
         num_attention_heads=32,
+        multi_token=1,
         num_key_value_heads=None,
         initializer_range=0.02,
         rms_norm_eps=1e-6,
@@ -167,6 +168,7 @@ class LlamaConfig(PretrainedConfig):
         self.seq_length = seq_length
         self.num_hidden_layers = num_hidden_layers
         self.num_attention_heads = num_attention_heads
+        self.multi_token = multi_token
 
         if num_key_value_heads is None:
             num_key_value_heads = num_attention_heads
