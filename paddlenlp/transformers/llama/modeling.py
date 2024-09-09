@@ -1463,6 +1463,10 @@ class LlamaModel(LlamaPretrainedModel):
             [LlamaDecoderLayer(config, i not in self.no_recompute_layers) for i in range(config.num_hidden_layers)]
         )
         self.norm = LlamaRMSNorm(config)
+        if self.config.multi_token > 1:
+            self.embedding_mapping = nn.Linear(config.hidden_size, config.hidden_size, bias_attr=False)
+            if config.tensor_parallel_degree > 1:
+                mark_as_sequence_parallel_parameter(self.embedding_mapping.weight)
 
         self.gradient_checkpointing = False
 
@@ -1597,6 +1601,7 @@ class LlamaModel(LlamaPretrainedModel):
                 bs, seq_len, hs = inputs_embeds.shape
                 seq_length = seq_len // self.config.multi_token
                 inputs_embeds = inputs_embeds.reshape([bs, seq_length, hs * self.config.multi_token])
+                inputs_embeds = self.embedding_mapping(inputs_embeds)
 
         if self.sequence_parallel:
             # [bs, seq_len, num_head * head_dim] -> [bs * seq_len, num_head * head_dim]
@@ -1832,6 +1837,11 @@ class LlamaLMHead(nn.Layer):
                 shape=[self.hidden_size, vocab_size],
                 dtype=paddle.get_default_dtype(),
             )
+        if self.config.multi_token > 1:
+            self.embedding_mapping = nn.Linear(self.config.hidden_size, self.config.hidden_size, bias_attr=False)
+            if config.tensor_parallel_degree:
+                mark_as_sequence_parallel_parameter(self.embedding_mapping.weight)
+
         # Must set distributed attr for Tensor Parallel !
         self.weight.is_distributed = True if (vocab_size != config.vocab_size) else False
         if self.weight.is_distributed:
@@ -1860,6 +1870,7 @@ class LlamaLMHead(nn.Layer):
 
         if self.config.multi_token > 1:
             bs, seq_len, h_size = hidden_states.shape
+            hidden_states = self.embedding_mapping(hidden_states)
             hidden_states = hidden_states.reshape(
                 [bs, seq_len * self.config.multi_token, h_size // self.config.multi_token]
             )

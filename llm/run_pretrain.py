@@ -495,19 +495,31 @@ def main():
         else:
             model = model_class.from_pretrained(
                 model_args.model_name_or_path,
+                ignore_mismatched_sizes=True,
                 config=config,
                 dtype=dtype,
             )
     else:
         model = model_class.from_config(config, dtype=dtype)
 
-    if training_args.sequence_parallel:
+    if training_args.sequence_parallel or training_args.tensor_parallel_degree > 1:
         register_sequence_parallel_allreduce_hooks(
             model, training_args.gradient_accumulation_steps, training_args.fuse_sequence_parallel_allreduce
         )
 
     if training_args.recompute:
         model.recompute_enable()
+
+    if model_args.continue_training:
+        for key, val in model.state_dict().items():
+            not_stop = [
+                "lm_head.weight",
+                "lm_head.embedding_mapping.weight",
+                "llama.embed_tokens.weight",
+                "llama.embedding_mapping.weight",
+            ]
+            if key not in not_stop:
+                val.stop_gradient = True
 
     # Create the learning_rate sheduler and optimizer
     if training_args.decay_steps is None:
