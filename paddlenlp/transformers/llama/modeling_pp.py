@@ -174,7 +174,12 @@ class LlamaDecoderLayerPipe(LlamaDecoderLayer):
             position_ids = None
 
         has_gradient = not hidden_states.stop_gradient
-        if self.enable_recompute and self.config.recompute_granularity == "full" and has_gradient:
+        if (
+            self.enable_recompute 
+            and self.layerwise_recompute
+            and self.config.recompute_granularity == "full" 
+            and has_gradient 
+        ):
             if attention_mask is not None or alibi is not None:
                 hidden_states = recompute(
                     super().forward, hidden_states, attention_mask=attention_mask, alibi=alibi, use_reentrant=False
@@ -222,8 +227,8 @@ class LlamaForCausalLMPipe(PipelinePretrainedModel, PipelineLayer):
         self.recompute_granularity = self.config.recompute_granularity
         self.pp_recompute_interval = self.config.pp_recompute_interval
         self.no_recompute_layers = config.no_recompute_layers if config.no_recompute_layers is not None else []
-        if self.recompute_granularity == "full":
-            assert len(self.no_recompute_layers) == 0, "for pp with full recompute, no_recompute_layers is not support"
+        # if self.recompute_granularity == "full":
+        #     assert len(self.no_recompute_layers) == 0, "for pp with full recompute, no_recompute_layers is not support"
 
         virtual_pp_degree = getattr(self.config, "virtual_pp_degree", 1)
 
@@ -249,9 +254,10 @@ class LlamaForCausalLMPipe(PipelinePretrainedModel, PipelineLayer):
 
         recompute_interval = 0
 
-        seg_method = "layer:LlamaDecoderLayer"
-        if config.num_hidden_layers % get_hcg().topology().get_dim_size("pipe") != 0:
-            seg_method = "uniform"
+        seg_method = [0, 5, 10, 15, 20, 25, 30, 36, 43]
+        # seg_method = "layer:LlamaDecoderLayer"
+        # if config.num_hidden_layers % get_hcg().topology().get_dim_size("pipe") != 0:
+        #     seg_method = "uniform"
 
         PipelineLayer.__init__(
             self,

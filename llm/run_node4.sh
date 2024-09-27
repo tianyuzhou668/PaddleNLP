@@ -1,0 +1,6 @@
+#!/bin/bash
+
+export NCCL_SOCKET_IFNAME=bond0
+export NCCL_IB_HCA=mlx5_0
+export FLAGS_enable_ixdnn_attn=true
+python3 -u  -m paddle.distributed.launch --ips=10.113.2.20,10.113.2.21,10.113.2.23,10.113.2.24 --hosts=10.113.2.20 --gpus "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15" run_pretrain.py ./llama/pretrain-llama_13b-pp4tp2sd2_stage1.json
