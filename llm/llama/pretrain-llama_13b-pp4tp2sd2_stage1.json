@@ -4,7 +4,7 @@
     "input_dir": "/home/datasets/openwebtext2_/llama/mmap",
     "output_dir": "./checkpoints",
     "per_device_train_batch_size": 2,
-    "gradient_accumulation_steps": 256,
+    "gradient_accumulation_steps": 128,
     "per_device_eval_batch_size": 64,
     "tensor_parallel_degree": 1,
     "pipeline_parallel_degree": 8,
