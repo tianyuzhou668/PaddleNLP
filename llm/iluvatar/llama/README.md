@@ -152,6 +152,7 @@ mv llama_openwebtext_100k_idx.npz ./data
 ### （3）预训练：
 我们在本目录中提供了对应四节点的预训练脚本，并已经按照32张BI150芯片的训练资源优化了并行策略等配置供您参考。启动预训练的详细步骤如下：
 ```bash
+cd ./iluvatar/llama
 # 您需要在脚本中将节点的ip地址更换为您实际节点的ip地址
 bash run_node4.sh
 ```
